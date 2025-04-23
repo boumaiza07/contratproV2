@@ -1,0 +1,10 @@
+{
+  "terminals": [
+    {
+      "name": "Command Prompt",
+      "shellPath": "C:\\Windows\\System32\\cmd.exe",
+      "shellArgs": [],
+      "focus": true
+    }
+  ]
+}

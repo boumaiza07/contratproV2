@@ -1,0 +1,178 @@
+<app-navbar></app-navbar>
+
+<section class="file-upload-section" aria-labelledby="upload-heading">
+  <div class="feature-content">
+    <!-- En-tête avec animation -->
+    <header class="section-header">
+      <h2 id="upload-heading" class="animate__fadeInDown">
+        <span role="text">
+          Gestion des documents <span class="highlight">Documents</span>
+        </span>
+      </h2>
+      <p class="section-subtitle">Téléchargez, gérez et partagez vos documents</p>
+    </header>
+
+    <!-- Grille responsive -->
+    <div class="upload-grid">
+      <!-- Colonne de téléchargement -->
+      <article class="upload-card" aria-labelledby="upload-card-heading">
+        <header>
+          <h3 id="upload-card-heading" class="card-title">
+            <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+            Télécharger un Document
+          </h3>
+        </header>
+
+        <div class="upload-form">
+          <div class="upload-area" (click)="fileInput.click()">
+            <input type="file" (change)="onFileSelected($event)" accept=".doc,.docx,.pdf,.txt,.rtf" #fileInput hidden>
+            <i class="fas fa-file-upload upload-icon"></i>
+            <p class="upload-text">Glissez et déposez votre fichier ici ou</p>
+            <button class="btn-choose">Sélectionner un fichier</button>
+            <p class="file-types">Types supportés: .doc, .docx, .pdf, .txt, .rtf</p>
+          </div>
+
+          <div class="selected-file" *ngIf="selectedFile">
+            <i class="fas fa-file-alt"></i>
+            <span>{{ selectedFile.name }}</span>
+          </div>
+
+          <div *ngIf="uploadMessage" class="message" [class.success]="uploadMessage.includes('successfully')">
+            <i [class]="uploadMessage.includes('successfully') ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'"></i>
+            {{ uploadMessage }}
+          </div>
+
+          <div *ngIf="uploadProgress > 0" class="progress-container">
+            <div class="progress-bar">
+              <div [style.width.%]="uploadProgress"></div>
+            </div>
+            <span class="progress-text">{{ uploadProgress }}%</span>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" (click)="uploadFile()" [disabled]="!selectedFile || isUploading">
+              <div class="button-content">
+                <app-spinner [active]="isUploading"></app-spinner>
+                <span class="button-text">
+                  <i class="fas fa-upload" aria-hidden="true" *ngIf="!isUploading"></i>
+                  {{ isUploading ? 'Téléchargement en cours...' : 'Télécharger' }}
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Extracted data display -->
+      <article class="extracted-data-card" *ngIf="extractedData.length > 0" aria-labelledby="extracted-data-heading">
+        <header>
+          <h3 id="extracted-data-heading" class="card-title">
+            <i class="fas fa-edit" aria-hidden="true"></i>
+            Données Extraites
+          </h3>
+        </header>
+
+        <div class="extracted-data-form">
+          <p class="info-text">Données extraites du document:</p>
+
+          <div class="form-fields">
+            <div class="form-group" *ngFor="let field of extractedData; let i = index">
+              <label [for]="'field-' + i">{{ field.key || 'Champ ' + (i + 1) }}</label>
+              <input
+                [id]="'field-' + i"
+                type="text"
+                [(ngModel)]="field.value"
+                class="form-control"
+                placeholder="Valeur"
+              >
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" (click)="generateDocument()" [disabled]="isGenerating || !currentFileName">
+              <div class="button-content">
+                <app-spinner [active]="isGenerating"></app-spinner>
+                <span class="button-text">
+                  <i class="fas fa-file-export" aria-hidden="true" *ngIf="!isGenerating"></i>
+                  {{ isGenerating ? 'Génération en cours...' : 'Générer le document' }}
+                </span>
+              </div>
+            </button>
+          </div>
+
+          <div *ngIf="generatedDocumentUrl" class="generated-document-info">
+            <p class="success-message">
+              <i class="fas fa-check-circle"></i>
+              Document généré avec succès!
+            </p>
+            <div class="generated-actions">
+              <a [href]="generatedDocumentUrl" class="btn-download" target="_blank">
+                <i class="fas fa-download"></i>
+                Télécharger le document
+              </a>
+              <a [routerLink]="['/security']" [queryParams]="{unsignedContractId: generatedUnsignedContractId}" class="btn-sign">
+                <i class="fas fa-signature"></i>
+                Signer le document
+              </a>
+            </div>
+          </div>
+
+          <div *ngIf="generationError" class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ generationError }}
+          </div>
+        </div>
+      </article>
+
+      <!-- Colonne de liste des fichiers -->
+      <article class="files-card" aria-labelledby="files-card-heading">
+        <header class="files-header">
+          <h3 id="files-card-heading" class="card-title">
+            <i class="fas fa-file-alt" aria-hidden="true"></i>
+            Mes Documents
+          </h3>
+          <button
+            class="btn-danger btn-delete-all"
+            (click)="deleteAllFiles()"
+            *ngIf="!isLoadingFiles && fileList.length > 0"
+            title="Supprimer tous les documents">
+            <i class="fas fa-trash-alt"></i> Supprimer tous
+          </button>
+        </header>
+
+        <div class="files-container">
+          <div *ngIf="isLoadingFiles" class="loading-files">
+            <app-spinner [active]="true"></app-spinner>
+            <p>Chargement des documents...</p>
+          </div>
+
+          <div *ngIf="!isLoadingFiles && fileList.length === 0" class="no-files">
+            <i class="fas fa-folder-open"></i>
+            <p>Aucun document disponible</p>
+          </div>
+
+          <table *ngIf="!isLoadingFiles && fileList.length > 0" class="files-table">
+            <thead>
+              <tr>
+                <th>Nom du fichier</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let file of fileList">
+                <td class="file-name">
+                  <i class="fas fa-file-word" *ngIf="file.endsWith('.docx') || file.endsWith('.doc')"></i>
+                  <i class="fas fa-file-pdf" *ngIf="file.endsWith('.pdf')"></i>
+                  <i class="fas fa-file-alt" *ngIf="file.endsWith('.txt') || file.endsWith('.rtf')"></i>
+                  <span>{{ file }}</span>
+                  <span class="file-date">{{ formattedDate }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<app-footer></app-footer>

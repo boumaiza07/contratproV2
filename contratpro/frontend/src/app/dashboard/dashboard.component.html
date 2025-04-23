@@ -1,0 +1,217 @@
+<app-navbar></app-navbar>
+
+<div class="dashboard-container">
+  <!-- Dashboard Header -->
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">Dashboard</h1>
+    <div class="dashboard-actions">
+      <div class="filter-controls">
+        <button class="filter-btn" [class.active]="filterPeriod === 'week'" (click)="setFilterPeriod('week')">Week</button>
+        <button class="filter-btn" [class.active]="filterPeriod === 'month'" (click)="setFilterPeriod('month')">Month</button>
+        <button class="filter-btn" [class.active]="filterPeriod === 'quarter'" (click)="setFilterPeriod('quarter')">Quarter</button>
+        <button class="filter-btn" [class.active]="filterPeriod === 'year'" (click)="setFilterPeriod('year')">Year</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics Row -->
+  <div class="metrics-row">
+    <!-- Total Contracts Metric -->
+    <div class="metric-card">
+      <div class="metric-header">
+        <div>
+          <div class="metric-title">Total Contracts</div>
+          <div class="metric-value">{{ metrics.total }}</div>
+          <div class="trend trend-up">
+            <i class="fas fa-arrow-up"></i> 10% from previous period
+          </div>
+        </div>
+        <div class="metric-icon total">
+          <i class="fas fa-file-contract"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signed Contracts Metric -->
+    <div class="metric-card">
+      <div class="metric-header">
+        <div>
+          <div class="metric-title">Signed Contracts</div>
+          <div class="metric-value">{{ metrics.signed }}</div>
+          <div class="trend trend-up">
+            <i class="fas fa-arrow-up"></i> 8% from previous period
+          </div>
+        </div>
+        <div class="metric-icon signed">
+          <i class="fas fa-file-signature"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unsigned Contracts Metric -->
+    <div class="metric-card">
+      <div class="metric-header">
+        <div>
+          <div class="metric-title">Unsigned Contracts</div>
+          <div class="metric-value">{{ metrics.unsigned }}</div>
+          <div class="trend trend-up">
+            <i class="fas fa-arrow-up"></i> 15% from previous period
+          </div>
+        </div>
+        <div class="metric-icon unsigned">
+          <i class="fas fa-file-alt"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Contracts Metric -->
+    <div class="metric-card">
+      <div class="metric-header">
+        <div>
+          <div class="metric-title">Pending Contracts</div>
+          <div class="metric-value">{{ metrics.active }}</div>
+          <div class="trend trend-down">
+            <i class="fas fa-arrow-down"></i> 5% from previous period
+          </div>
+        </div>
+        <div class="metric-icon pending">
+          <i class="fas fa-hourglass-half"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="charts-row">
+    <!-- Activity Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2 class="chart-title">Contract Activity</h2>
+      </div>
+      <div class="chart-canvas-container">
+        <canvas #activityChart></canvas>
+      </div>
+    </div>
+
+    <!-- Completion Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2 class="chart-title">Contract Status</h2>
+      </div>
+      <div class="chart-canvas-container">
+        <canvas #completionChart></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contracts Table -->
+  <div class="contracts-card">
+    <div class="contracts-header">
+      <div class="contracts-header-top">
+        <h2 class="contracts-title">Contracts</h2>
+        <div class="contracts-actions">
+          <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search contracts..." (input)="searchContracts($event)">
+          </div>
+          <button class="btn-add" (click)="addNewContract()">
+            <i class="fas fa-plus"></i> Add Contract
+          </button>
+        </div>
+      </div>
+
+      <!-- Contract Tabs -->
+      <div class="contract-tabs">
+        <button class="tab-btn" [class.active]="activeTab === 'all'" (click)="setActiveTab('all')">
+          All Contracts
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'signed'" (click)="setActiveTab('signed')">
+          Signed Contracts
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'unsigned'" (click)="setActiveTab('unsigned')">
+          Unsigned Contracts
+        </button>
+      </div>
+    </div>
+
+    <table class="contracts-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Date</th>
+          <th *ngIf="activeTab !== 'signed'">Status</th>
+          <th *ngIf="activeTab === 'signed' || activeTab === 'all'">Signer Email</th>
+          <th>Type</th>
+          <th>Progress</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let contract of filteredContracts">
+          <td>{{ contract.id }}</td>
+          <td>{{ contract.client || contract.nom_contrat }}</td>
+          <td>{{ contract.startDate | date:'MMM d, y' }}</td>
+          <td *ngIf="activeTab !== 'signed'">
+            <span class="contract-status"
+                  [ngClass]="{
+                    'status-active': contract.status === 'active' || contract.status === 'pending',
+                    'status-signed': contract.status === 'signed',
+                    'status-unsigned': contract.type === 'unsigned' && contract.status !== 'pending'
+                  }">
+              {{ contract.status | titlecase }}
+            </span>
+          </td>
+          <td *ngIf="activeTab === 'signed' || activeTab === 'all'">
+            {{ contract.email_signataire || 'N/A' }}
+          </td>
+          <td>
+            <span class="contract-type"
+                  [ngClass]="{
+                    'type-signed': contract.type === 'signed',
+                    'type-unsigned': contract.type === 'unsigned'
+                  }">
+              {{ contract.type | titlecase }}
+            </span>
+          </td>
+          <td>
+            <div class="progress-bar">
+              <div class="progress-value"
+                  [style.width.%]="contract.progress"
+                  [style.background-color]="
+                    contract.type === 'unsigned' && contract.status === 'pending' ? '#f59e0b' :
+                    contract.type === 'unsigned' ? '#3b82f6' : '#10b981'">
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="table-actions">
+              <button class="action-btn" title="View details" (click)="viewContract(contract)">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="action-btn" title="Download contract" (click)="downloadContract(contract)">
+                <i class="fas fa-download"></i>
+              </button>
+              <button class="action-btn" *ngIf="contract.type === 'unsigned'" title="Delete contract" (click)="deleteContract(contract)">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredContracts.length === 0">
+          <td colspan="7" class="no-data">
+            <div class="empty-state">
+              <i class="fas fa-file-contract empty-icon"></i>
+              <p>No contracts found</p>
+              <button class="btn-add" (click)="addNewContract()">
+                <i class="fas fa-plus"></i> Add Your First Contract
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<app-footer></app-footer>

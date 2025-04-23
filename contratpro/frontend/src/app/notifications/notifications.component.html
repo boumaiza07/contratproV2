@@ -1,0 +1,43 @@
+<app-navbar></app-navbar>
+<section class="notifications-section">
+    <div class="header">
+        <h1>
+            <i class="fas fa-bell"></i> Notifications ({{ unreadCount }})
+        </h1>
+        <button class="btn btn-primary" (click)="markAsRead()">
+            <i class="fas fa-check-double"></i> Tout marquer comme lu
+        </button>
+    </div>
+
+    <div class="notifications-list">
+        <div *ngFor="let notification of notifications" 
+             class="notification-card"
+             [class.unread]="!notification.isRead"
+             [class.alert]="notification.type === 'alert'">
+            
+            <div class="notification-icon">
+                <i [ngClass]="{
+                    'fas fa-exclamation-circle': notification.type === 'alert',
+                    'fas fa-bell': notification.type === 'reminder',
+                    'fas fa-sync-alt': notification.type === 'update',
+                }"></i>
+            </div>
+
+            <div class="notification-content">
+                <h3>{{ notification.title }}</h3>
+                <p>{{ notification.message }}</p>
+                <span class="date">
+                    <i class="fas fa-calendar-alt"></i> {{ notification.date | date: 'dd/MM/yyyy HH:mm' }}
+                </span>
+            </div>
+
+            <div class="notification-actions">
+                
+                <button class="delete-btn" (click)="deleteNotification(notification)">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+<app-footer></app-footer>

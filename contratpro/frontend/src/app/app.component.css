@@ -1,0 +1,53 @@
+/* Base styles for the application */
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: #f4f7fc;
+  color: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    background-color: #121212;
+    color: #f0f0f0;
+  }
+}
+
+/* Global layout containers */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.main-content {
+  padding: 20px 0;
+}
+
+/* Utility classes */
+.text-primary {
+  color: var(--primary);
+}
+
+.bg-primary {
+  background-color: var(--primary);
+}
+
+.gradient-text {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,549 @@
+:host {
+  --signature-border-color: var(--primary-light);
+  --signature-bg: rgba(124, 58, 237, 0.05);
+  --signature-border-width: 2px;
+}
+
+.security-container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  color: var(--text-white);
+  padding-top: 100px; /* Space for navbar */
+}
+
+/* Contract Preview Section */
+.contract-preview {
+  background: var(--bg-dark-light);
+  border-radius: var(--radius-lg);
+  padding: 25px;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.contract-preview:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-xl);
+}
+
+.contract-preview h2 {
+  font-size: 1.8rem;
+  color: var(--primary-light);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.contract-content {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* File Preview Styles */
+.file-preview-container {
+  width: 100%;
+  min-height: 500px;
+  margin-bottom: 20px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: var(--bg-dark);
+  position: relative;
+}
+
+/* PDF Viewer */
+.pdf-viewer {
+  width: 100%;
+  min-height: 500px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-dark);
+}
+
+/* Text File Viewer */
+.text-viewer {
+  width: 100%;
+  min-height: 500px;
+  background-color: var(--bg-dark);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.text-viewer-header {
+  background-color: var(--bg-dark-light);
+  padding: 10px 15px;
+  font-weight: 600;
+  color: var(--primary-light);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--bg-dark-lighter);
+}
+
+.text-content {
+  padding: 15px;
+  overflow: auto;
+  flex: 1;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: var(--text-white);
+  font-family: monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-height: 400px;
+}
+
+.text-viewer-footer {
+  background-color: var(--bg-dark-light);
+  padding: 10px 15px;
+  border-top: 1px solid var(--bg-dark-lighter);
+  font-size: 0.9rem;
+  color: var(--text-white-muted);
+}
+
+.text-viewer-footer p {
+  margin: 5px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text-viewer-footer i {
+  color: var(--primary-light);
+}
+
+/* Word Document Viewer */
+.doc-viewer {
+  width: 100%;
+  min-height: 500px;
+  background-color: var(--bg-dark);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-viewer-content {
+  text-align: center;
+  padding: 30px;
+}
+
+.doc-icon {
+  font-size: 5rem;
+  color: #4285f4;
+  margin-bottom: 20px;
+}
+
+.doc-viewer-content h3 {
+  color: var(--primary-light);
+  margin-bottom: 15px;
+}
+
+.doc-viewer-content p {
+  color: var(--text-white);
+  margin-bottom: 10px;
+}
+
+/* Other File Types Viewer */
+.other-file-viewer {
+  width: 100%;
+  min-height: 500px;
+  background-color: var(--bg-dark);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.other-file-content {
+  text-align: center;
+  padding: 30px;
+}
+
+.other-file-icon {
+  font-size: 5rem;
+  color: var(--primary);
+  margin-bottom: 20px;
+}
+
+.other-file-content h3 {
+  color: var(--primary-light);
+  margin-bottom: 15px;
+}
+
+.other-file-content p {
+  color: var(--text-white);
+  margin-bottom: 10px;
+}
+
+/* No File Selected */
+.no-file-selected {
+  width: 100%;
+  min-height: 500px;
+  background-color: var(--bg-dark);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-white-muted);
+}
+
+.upload-icon {
+  font-size: 5rem;
+  color: var(--bg-dark-lighter);
+  margin-bottom: 20px;
+}
+
+/* Upload Container */
+.upload-container {
+  border: 3px dashed var(--bg-dark-lighter);
+  border-radius: var(--radius-md);
+  padding: 25px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-container:hover {
+  border-color: var(--primary-light);
+  background-color: rgba(124, 58, 237, 0.05);
+}
+
+.upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  gap: 10px;
+}
+
+.upload-label .icon {
+  font-size: 2.5rem;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.upload-label .label-text {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.file-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg-dark);
+  padding: 8px 15px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  margin-top: 10px;
+  color: var(--success);
+}
+
+.upload-input {
+  display: none;
+}
+
+/* Signing Section */
+.signing-section {
+  background: var(--bg-dark-light);
+  border-radius: var(--radius-lg);
+  padding: 25px;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.signing-section:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-xl);
+}
+
+.signing-section h2 {
+  font-size: 1.8rem;
+  color: var(--primary-light);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.signing-section h3 {
+  font-size: 1.4rem;
+  color: var(--primary-light);
+  margin-top: 25px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.signer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Form Styling */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-white);
+}
+
+.modern-input {
+  width: 90%;
+  padding: 12px 15px;
+  border: 2px solid var(--bg-dark-lighter);
+  background-color: var(--bg-dark);
+  border-radius: var(--radius-md);
+  color: var(--text-white);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.modern-input:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+
+.error-message {
+  color: var(--error);
+  font-size: 0.9rem;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.consent-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.consent-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* Signature Area */
+.signature-area {
+  margin-top: 15px;
+  position: relative;
+}
+
+canvas {
+  width: 100%;
+  height: 200px;
+  border: var(--signature-border-width) solid var(--signature-border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--signature-bg);
+  cursor: crosshair;
+  transition: all 0.3s ease;
+}
+
+canvas:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+
+.signature-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Button Styling */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: var(--primary-gradient);
+  color: var(--text-white);
+  padding: 12px 30px;
+  font-size: 1.1rem;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background-color: var(--bg-dark);
+  color: var(--text-white);
+  border: 1px solid var(--bg-dark-lighter);
+  font-size: 0.9rem;
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-dark-lighter);
+  transform: translateY(-2px);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  margin-top: 25px;
+}
+
+/* Spinner */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Message Display */
+.status-messages {
+  margin-top: 20px;
+}
+
+.alert {
+  padding: 15px;
+  border-radius: var(--radius-md);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.error {
+  background-color: var(--error-bg);
+  color: var(--error);
+}
+
+.success {
+  background-color: var(--success-bg);
+  color: var(--success);
+}
+
+.field-errors {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field-errors .error {
+  font-size: 0.9rem;
+  padding: 8px 15px;
+}
+
+/* Responsive Styling */
+@media (max-width: 992px) {
+  .security-container {
+    grid-template-columns: 1fr;
+  }
+
+  .file-preview-container,
+  .pdf-viewer,
+  .text-viewer,
+  .doc-viewer,
+  .other-file-viewer,
+  .no-file-selected {
+    min-height: 400px;
+  }
+
+  .text-content {
+    max-height: 350px;
+  }
+}
+
+@media (max-width: 576px) {
+  .signature-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .file-preview-container,
+  .pdf-viewer,
+  .text-viewer,
+  .doc-viewer,
+  .other-file-viewer,
+  .no-file-selected {
+    min-height: 300px;
+  }
+
+  .text-content {
+    max-height: 250px;
+  }
+
+  .doc-icon,
+  .other-file-icon,
+  .upload-icon {
+    font-size: 3rem;
+  }
+}

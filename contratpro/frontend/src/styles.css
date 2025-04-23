@@ -1,0 +1,122 @@
+/* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { 
+  margin: 0; 
+  font-family: Roboto, "Helvetica Neue", sans-serif; 
+  background-color: var(--bg-dark);
+  color: var(--text-white);
+}
+
+/* Add application styles & imports to this file! */
+
+/* Global Color Palette */
+:root {
+  /* Primary Brand Colors */
+  --primary: #7c3aed;
+  --primary-light: #8b5cf6;
+  --primary-dark: #6d28d9;
+  --primary-gradient: linear-gradient(90deg, #7c3aed, #c026d3);
+  
+  /* Background Colors */
+  --bg-dark: #1a1a1a;
+  --bg-dark-light: #2a2a2a;
+  --bg-dark-lighter: #3a3a3a;
+  
+  /* Text Colors */
+  --text-white: #ffffff;
+  --text-gray: #666666;
+  --text-light-gray: #cccccc;
+  
+  /* Status Colors */
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.1);
+  --error: #ef4444;
+  --error-bg: rgba(220, 38, 38, 0.1);
+  
+  /* Shadow */
+  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 10px rgba(124, 58, 237, 0.3);
+  --shadow-lg: 0 15px 40px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.5);
+  
+  /* Border Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  
+  /* Animation */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+
+/* Common Button Styles */
+.btn-primary {
+  background: var(--primary-gradient);
+  color: var(--text-white);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:disabled {
+  background: #4a4a4a;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Common Form Styles */
+.form-control {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: var(--bg-dark-light);
+  border: 1px solid var(--bg-dark-lighter);
+  border-radius: var(--radius-md);
+  color: var(--text-white);
+  font-size: 1rem;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-sm) inset;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2), var(--shadow-sm) inset;
+  transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

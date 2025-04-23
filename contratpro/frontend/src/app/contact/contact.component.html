@@ -1,0 +1,187 @@
+<app-navbar></app-navbar>
+
+<section class="contact-section" aria-labelledby="contact-heading">
+    <br>   
+    <div class="feature-content">
+      <!-- En-tête avec animation -->
+      <header class="section-header">
+        <h2 id="contact-heading" class="animate__fadeInDown">
+          <span role="text">
+            Contactez l'équipe <span class="highlight">ContratPro</span>
+          </span>
+        </h2>
+        <p class="section-subtitle">Nous répondons sous 24 heures</p>
+      </header>
+  
+      <!-- Grille responsive -->
+      <div class="contact-grid">
+        <!-- Colonne de coordonnées -->
+        <article class="contact-info" aria-labelledby="coordinates-heading">
+          <header>
+            <h3 id="coordinates-heading" class="info-title">
+              <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+              Nos coordonnées
+            </h3>
+          </header>
+          <address>
+            <div class="info-item">
+              <i class="fas fa-building" aria-hidden="true"></i>
+              <div>
+                <p class="info-label">Siège social</p>
+                <p class="info-value">Tunisie</p>
+              </div>
+            </div>
+  
+            <div class="info-item">
+              <i class="fas fa-phone" aria-hidden="true"></i>
+              <div>
+                <p class="info-label">Téléphone</p>
+                <p class="info-value">
+                  <a href="tel:+21670000000" class="contact-link" aria-label="Appeler le numéro +216 70 000 000">+216 70 000 000</a>
+                </p>
+              </div>
+            </div>
+  
+            <div class="info-item">
+              <i class="fas fa-envelope" aria-hidden="true"></i>
+              <div>
+                <p class="info-label">Email</p>
+                <p class="info-value">
+                  <a href="mailto:contactinsomea.com" class="contact-link" aria-label="Envoyer un email à contact@insomea.com">contactinsomea.com</a>
+                </p>
+              </div>
+            </div>
+          </address>
+  
+          
+        </article>
+  
+        <!-- Colonne de la carte -->
+        <figure class="contact-map">
+          <div class="feature-image">
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=..."
+              title="Localisation d'Insomea Solutions sur la carte"
+              loading="lazy"
+              aria-hidden="false"
+              tabindex="0"
+            ></iframe>
+          </div>
+          <figcaption class="map-caption">Localisation de notre siège social</figcaption>
+        </figure>
+      </div>
+  
+      <!-- Formulaire de contact -->
+      <form 
+        [formGroup]="contactForm" 
+        (ngSubmit)="onSubmit()" 
+        class="contact-form"
+        aria-labelledby="form-heading"
+      >
+        <h3 id="form-heading" class="form-title">Envoyez-nous un message</h3>
+  
+        <div class="form-grid">
+          <!-- Groupe Nom -->
+          <div class="form-group">
+            <label for="name" class="input-label">
+              Nom complet
+              <span class="required" aria-hidden="true">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="name" 
+              formControlName="name" 
+              class="form-control"
+              placeholder="Votre nom"
+              aria-required="true"
+            >
+            <div class="error-message" *ngIf="contactForm.get('name')?.invalid && contactForm.get('name')?.touched">
+              Ce champ est requis
+            </div>
+          </div>
+  
+          <!-- Groupe Email -->
+          <div class="form-group">
+            <label for="email" class="input-label">
+              Adresse email
+              <span class="required" aria-hidden="true">*</span>
+            </label>
+            <input 
+              type="email" 
+              id="email" 
+              formControlName="email" 
+              class="form-control"
+              placeholder="exemple@domaine.com"
+              aria-required="true"
+            >
+            <div class="error-message" 
+              *ngIf="contactForm.get('email')?.errors?.['required'] && contactForm.get('email')?.touched">
+              L'email est requis
+            </div>
+            <div class="error-message" 
+              *ngIf="contactForm.get('email')?.errors?.['email'] && contactForm.get('email')?.touched">
+              Format d'email invalide
+            </div>
+          </div>
+  
+          <!-- Groupe Sujet -->
+          <div class="form-group">
+            <label for="subject" class="input-label">
+              Sujet
+              <span class="required" aria-hidden="true">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="subject" 
+              formControlName="subject" 
+              class="form-control"
+              placeholder="Objet de votre message"
+              aria-required="true"
+            >
+            <div class="error-message" *ngIf="contactForm.get('subject')?.invalid && contactForm.get('subject')?.touched">
+              Veuillez spécifier un sujet
+            </div>
+          </div>
+  
+          <!-- Groupe Message -->
+          <div class="form-group full-width">
+            <label for="message" class="input-label">
+              Votre message
+              <span class="required" aria-hidden="true">*</span>
+            </label>
+            <textarea 
+              id="message" 
+              formControlName="message" 
+              class="form-control"
+              rows="5"
+              placeholder="Décrivez votre demande..."
+              aria-required="true"
+            ></textarea>
+            <div class="error-message" 
+              *ngIf="contactForm.get('message')?.invalid && contactForm.get('message')?.touched">
+              Veuillez écrire votre message
+            </div>
+          </div>
+        </div>
+  
+        <!-- Bouton de soumission -->
+        <div class="form-actions">
+          <button 
+            type="submit" 
+            class="btn-primary"
+            [disabled]="!contactForm.valid || isLoading"
+            aria-label="Envoyer le message"
+          >
+            <div class="button-content">
+              <div class="spinner" [class.active]="isLoading" aria-hidden="true"></div>
+              <span class="button-text">
+                <i class="fas fa-paper-plane" aria-hidden="true" *ngIf="!isLoading"></i>
+                {{ isLoading ? 'Envoi en cours...' : 'Envoyer' }}
+              </span>
+            </div>
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+  <app-footer></app-footer>

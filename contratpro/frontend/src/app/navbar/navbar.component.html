@@ -1,0 +1,64 @@
+<!-- navbar.component.html -->
+<nav class="navbar">
+  <div class="navbar-container">
+    <a routerLink="/" class="logo">ContratPro</a>
+    
+    <button class="menu-toggle" (click)="toggleMenu()" aria-label="Toggle navigation menu">
+      <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="nav-menu" [class.active]="menuOpen">
+      <ul class="nav-links">
+        <li class="nav-item">
+          <a routerLink="/upload" routerLinkActive="active"><i class="fas fa-upload"></i> Télécharger</a>
+        </li>
+
+        <li class="nav-item">
+          <a routerLink="/security" routerLinkActive="active"><i class="fa-solid fa-list-check"></i> Valider et signer</a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/dashboard" routerLinkActive="active"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+        </li>
+        
+        <li class="nav-item">
+          <a routerLink="/notifications" routerLinkActive="active"><i class="fas fa-bell"></i> <span class="nav-text">Notifications</span>
+            <span *ngIf="notificationCount > 0" class="notification-badge">{{ notificationCount }}</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/contact" routerLinkActive="active"><i class="fas fa-envelope"></i> Contact</a>
+        </li>
+      </ul>
+      
+      <div class="auth-buttons">
+        <ng-container *ngIf="!isLoggedIn">
+          <a routerLink="/sign-in" class="btn btn-login"><i class="fas fa-sign-in-alt"></i> Connexion</a>
+          <a routerLink="/signup" class="btn btn-register"><i class="fas fa-user-plus"></i> Inscription</a>
+        </ng-container>
+        
+        <div *ngIf="isLoggedIn" class="user-menu">
+          <button class="user-menu-toggle" (click)="toggleUserMenu()" aria-label="Toggle user menu">
+            <div class="user-avatar" *ngIf="userAvatar">
+              <img [src]="userAvatar" alt="Avatar de {{ userName }}">
+            </div>
+            <div class="user-avatar avatar-placeholder" *ngIf="!userAvatar">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="user-info">
+              <span class="username">{{ userName }}</span>
+              <span *ngIf="userEmail" class="user-email">{{ userEmail }}</span>
+            </div>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="user-dropdown" [class.active]="userMenuOpen">
+            <a routerLink="/profile" class="dropdown-item"><i class="fas fa-user"></i> Profil</a>
+            <a routerLink="/upload" class="dropdown-item"><i class="fas fa-upload"></i> Télécharger des fichiers</a>
+            <a routerLink="/account" class="dropdown-item"><i class="fas fa-cog"></i> Paramètres</a>
+            <div class="dropdown-divider"></div>
+            <a (click)="logout()" class="dropdown-item logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

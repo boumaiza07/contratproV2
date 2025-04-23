@@ -1,0 +1,17 @@
+{
+    "name": "contratpro-monorepo",
+    "version": "1.0.0",
+    "scripts": {
+      "frontend:dev": "cd frontend && ng serve",
+      "backend:dev": "cd backend && php artisan serve",
+      "dev": "concurrently \"npm run frontend:dev\" \"npm run backend:dev\"",
+      "install:all": "npm ci && cd frontend && npm ci && cd ../backend && composer install",
+      "build": "cd frontend && ng build --configuration production",
+      "build:laravel": "cd frontend && ng build --configuration production --output-path=../backend/public/angular",
+      "start": "concurrently \"cd backend && php artisan serve\" \"cd frontend/dist/web-cnt && npx http-server -p 4200\""
+    },
+    "devDependencies": {
+      "concurrently": "^7.6.0",
+      "http-server": "^14.1.1"
+    }
+  }

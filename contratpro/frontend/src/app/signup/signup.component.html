@@ -1,0 +1,98 @@
+<div class="page-container">
+  <div class="signup-container">
+    <div class="signup-left">
+      <div class="hero-content">
+        <h2>Draft Perfect Contracts<br>In Minutes, Not Hours</h2>
+        
+      </div>
+    </div>
+
+    <div class="signup-right">
+      <div class="signup-form-container">
+        <div class="form-header">
+          <h1>Create an account</h1>
+          <p class="login-link">Already have an account? <a routerLink="/sign-in">Log in</a></p>
+        </div>
+
+        <form [formGroup]="signupForm" (ngSubmit)="onSubmit()" class="signup-form">
+          <div *ngIf="message" class="message" [class.error]="message.startsWith('error')" [class.success]="message.startsWith('success')">
+            
+            <div class="message-text">
+              {{ message.replace('error: ', '').replace('success: ', '') }}
+            </div>
+          </div>
+
+          <div class="name-fields">
+            <div class="form-field">
+              <label for="firstname" class="field-label">First Name</label>
+              <div class="input-wrapper">
+                <input type="text" id="firstname" formControlName="firstname" placeholder="Enter your first name" />
+              </div>
+              <div *ngIf="signupForm.get('firstname')?.invalid && signupForm.get('firstname')?.touched" class="error-message">
+                First name is required
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="lastname" class="field-label">Last Name</label>
+              <div class="input-wrapper">
+                <input type="text" id="lastname" formControlName="lastname" placeholder="Enter your last name" />
+              </div>
+              <div *ngIf="signupForm.get('lastname')?.invalid && signupForm.get('lastname')?.touched" class="error-message">
+                Last name is required
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="email" class="field-label">Email</label>
+            <div class="input-wrapper">
+              <input id="email" type="email" formControlName="email" placeholder="Enter your email" />
+            </div>
+            <div *ngIf="signupForm.get('email')?.invalid && signupForm.get('email')?.touched" class="error-message">
+              Enter a valid email address
+            </div>
+          </div>
+
+          <div class="form-field password-field">
+            <label for="password" class="field-label">Password</label>
+            <div class="input-wrapper">
+              <input [type]="hidePassword ? 'password' : 'text'"
+                    id="password"
+                    formControlName="password"
+                    placeholder="Enter your password" />
+              <button type="button" class="toggle-password" (click)="hidePassword = !hidePassword">
+                {{ hidePassword ? '🙈' : '🙉' }}
+              </button>
+            </div>
+            <div *ngIf="signupForm.get('password')?.invalid && signupForm.get('password')?.touched" class="error-message">
+              Password must be at least 8 characters
+            </div>
+          </div>
+
+          <div class="form-field password-field">
+            <label for="password_confirmation" class="field-label">Confirm Password</label>
+            <div class="input-wrapper">
+              <input [type]="hidePassword ? 'password' : 'text'"
+                    id="password_confirmation"
+                    formControlName="password_confirmation"
+                    placeholder="Confirm your password" />
+              <button type="button" class="toggle-password" (click)="hidePassword = !hidePassword">
+                {{ hidePassword ? '🙈' : '🙉' }}
+              </button>
+            </div>
+            <div *ngIf="signupForm.get('password_confirmation')?.invalid && signupForm.get('password_confirmation')?.touched" class="error-message">
+              Passwords must match
+            </div>
+          </div>
+
+          <button type="submit" class="signup-button" [disabled]="!signupForm.valid || isLoading">
+            <div class="button-content">
+              <div class="spinner" [class.active]="isLoading" aria-hidden="true"></div>
+              <span class="button-text">{{ isLoading ? 'Creating Account...' : 'Create Account' }}</span>
+            </div>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

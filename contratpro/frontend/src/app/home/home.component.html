@@ -1,0 +1,86 @@
+  <app-navbar></app-navbar>
+
+<!-- Section Hero -->
+<section class="hero-section">
+  <div class="hero-content">
+    <h1>Simplifiez la gestion de vos contrats</h1>
+    <p>Une solution tout-en-un pour créer, signer et gérer vos contrats en toute simplicité.</p>
+    <div class="cta-buttons">
+      <a href="/login" class="btn btn-primary">Commencer gratuitement</a>
+      <a href="#features" class="btn btn-secondary">Découvrir les fonctionnalités</a>
+    </div>
+  </div>
+</section>
+
+<!-- Section Fonctionnalités -->
+<section class="features-section" id="features">
+  <h2>Fluidifiez votre management des contrats</h2>
+
+  <!-- Boutons des fonctionnalités -->
+  <div class="feature-buttons">
+    <button (click)="showContent('generer')" [class.active]="activeFeature === 'generer'">Générer</button>
+    <button (click)="showContent('valider-signer')" [class.active]="activeFeature === 'valider-signer'">Valider et signer</button>
+    <button (click)="showContent('analyser')" [class.active]="activeFeature === 'analyser'">Analyser</button>
+  </div>
+
+  <!-- Contenu des fonctionnalités -->
+  <div class="feature-content">
+    <!-- Générer -->
+    <div *ngIf="activeFeature === 'generer'" class="feature-item">
+      <div class="feature-text">
+        <h3>Générer</h3>
+        <p><B>Élaborez des contrats de manière rapide et efficace</B></p><p> En utilisant des modèles hautement personnalisables, permettant ainsi d'adapter chaque document aux spécificités de vos besoins professionnels.</p>
+      </div>
+      <div class="feature-image">
+        <img src="/assets/gn.jpg" alt="Générer" height="500px" />
+      </div>
+    </div>
+
+   
+
+    <!-- Valider et signer -->
+    <div *ngIf="activeFeature === 'valider-signer'" class="feature-item">
+      <div class="feature-text">
+        <h3>Valider et signer</h3>
+        <p><B>Optimisez l'ensemble de vos processus de validation en prenant le contrôle total de chaque étape </B></p><p>Du premier brouillon à la signature finale, et assurez-vous d'une gestion efficace des circuits de validation. Grâce à des outils avancés et une organisation fluide, vous pouvez accélérer considérablement le processus de signature de vos contrats, tout en garantissant leur conformité et en facilitant leur traçabilité à chaque phase. Cela vous permet de gagner du temps, d'améliorer la productivité et de minimiser les risques d'erreurs, tout en offrant une expérience fluide et rapide pour toutes les parties prenantes impliquées.</p>
+      </div>
+      <div class="feature-image">
+        <img src="/assets/sig.avif" alt="Valider et signer" />
+      </div>
+    </div>
+
+    <!-- Analyser -->
+    <div *ngIf="activeFeature === 'analyser'" class="feature-item">
+      <div class="feature-text">
+        <h3>Analyser</h3>
+        <p><B>Exploitez pleinement vos données contractuelles en centralisant et en analysant toutes les informations pertinentes contenues dans vos contrats</B></p><p> Cette approche vous permet non seulement de suivre en temps réel l’évolution de vos projets contractuels, mais aussi de détecter rapidement les éventuels écarts par rapport aux objectifs fixés. Grâce à nos tableaux de bord personnalisés, vous bénéficiez d’une vue d’ensemble claire et détaillée sur le statut de chacun de vos contrats, avec des indicateurs précis pour surveiller leur avancement, leur conformité et les actions à entreprendre. Cela facilite la prise de décisions stratégiques, optimise la gestion des ressources et garantit une meilleure réactivité face aux évolutions du marché et des conditions contractuelles.</p>
+      </div>
+      <div class="feature-image">
+        <img src="/assets/an.jpg" alt="Analyser" />
+      </div>
+    </div>
+
+    
+  </div>
+</section>
+
+<!-- Section À propos -->
+<section class="about-section">
+  <div class="about-content">
+    <h2>À propos de nous</h2>
+    <p>
+      ContratPro est une plateforme innovante conçue pour simplifier la gestion des contrats. Nous offrons des outils puissants pour les entreprises de toutes tailles, afin de gagner du temps et d'optimiser leurs processus.
+    </p>
+  </div>
+</section>
+
+
+
+<!-- Section Contact -->
+<section class="contact-section">
+  <h2>Contactez-nous</h2>
+  <p>Vous avez des questions ou besoin d'aide ? Notre équipe est là pour vous.</p>
+  <a href="/contact" class="btn btn-primary">Nous contacter</a>
+</section>
+
+<app-footer></app-footer>
