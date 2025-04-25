@@ -1,183 +1,263 @@
 <app-navbar></app-navbar>
 
-<section class="security-container">
-  <!-- Section Aperçu du contrat -->
-  <div class="contract-preview">
-    <h2><i class="fas fa-file-contract"></i> Contrat à signer</h2>
-    <div class="contract-content">
+<section class="security-section" aria-labelledby="security-heading">
+  <div class="feature-content">
+    <!-- En-tête avec animation -->
+    <header class="section-header">
+      <h2 id="security-heading" class="animate__fadeInDown">
+          <span class="highlight">Signature</span>
+      </h2>
+      <p class="section-subtitle">Sécurisez vos documents avec notre système de signature électronique</p>
+    </header>
 
-      <!-- File Preview Section -->
-      <div class="file-preview-container">
-        <!-- PDF Preview -->
-        <iframe
-          *ngIf="filePreviewType === 'pdf' && uploadedFileUrl"
-          [src]="uploadedFileUrl"
-          class="pdf-viewer">
-        </iframe>
+    <div class="security-container">
+      <!-- Section Aperçu du contrat -->
+      <div class="contract-preview">
+        <h2><i class="fas fa-file-contract"></i> Contrat à signer</h2>
+        <div class="contract-content">
+          <!-- File Preview Section -->
+          <div class="file-preview-container">
+            <!-- PDF Preview -->
+            <iframe
+              *ngIf="filePreviewType === 'pdf' && uploadedFileUrl"
+              [src]="uploadedFileUrl"
+              class="pdf-viewer">
+            </iframe>
 
-        <!-- Text File Preview -->
-        <div *ngIf="filePreviewType === 'text' && fileTextContent" class="text-viewer">
-          <div class="text-viewer-header">
-            <i class="fas fa-file-alt"></i> Aperçu du fichier texte
+            <!-- Word Document Preview -->
+            <div *ngIf="filePreviewType === 'word'" class="doc-viewer">
+              <div class="doc-viewer-content">
+                <i class="fas fa-file-word doc-icon"></i>
+                <h3>Document Word</h3>
+                <p>Les documents Word ne peuvent pas être prévisualisés directement dans le navigateur.</p>
+                <p>Votre signature sera ajoutée au document lors du processus de signature.</p>
+                <p>Le document signé sera téléchargé automatiquement après la signature.</p>
+              </div>
+            </div>
+
+            <!-- No File Selected -->
+            <div *ngIf="!filePreviewType && !pdfFile" class="no-file-selected">
+              <i class="fas fa-cloud-upload-alt upload-icon"></i>
+              <p>Sélectionnez un fichier pour commencer</p>
+            </div>
           </div>
-          <pre class="text-content">{{ fileTextContent }}</pre>
-          <div class="text-viewer-footer">
-            <p><i class="fas fa-info-circle"></i> Votre signature sera ajoutée à la fin du document.</p>
-            <p>Le document signé sera téléchargé automatiquement après la signature.</p>
+
+          <!-- File upload control -->
+          <div class="form-group upload-container">
+            <label for="pdfFile" class="upload-label">
+              <i class="fas fa-cloud-upload-alt icon"></i>
+              <span class="label-text">Téléchargez votre document ici</span>
+              <small>Format supporté: PDF, DOCX, DOC</small>
+              <span class="file-status" *ngIf="pdfFile">
+                <i class="fas fa-check-circle"></i> {{ pdfFile.name }} ({{ formattedFileSize }})
+              </span>
+            </label>
+            <input
+              type="file"
+              id="pdfFile"
+              (change)="onFileSelected($event)"
+              accept=".pdf,.docx,.doc"
+              class="upload-input">
+          </div>
+
+          <!-- Document Information Summary -->
+          <div class="document-info" *ngIf="pdfFile">
+            <h3><i class="fas fa-info-circle"></i> Informations du document</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Nom:</span>
+                <span class="info-value">{{ pdfFile.name }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Type:</span>
+                <span class="info-value">{{ getFileType() }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Taille:</span>
+                <span class="info-value">{{ formattedFileSize }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Date:</span>
+                <span class="info-value">{{ getCurrentDate() }}</span>
+              </div>
+            </div>
+
+            <!-- Signature Position Selector -->
+            <div class="signature-position-selector" *ngIf="filePreviewType === 'pdf'">
+              <h4><i class="fas fa-map-marker-alt"></i> Position de la signature</h4>
+              <div class="position-options">
+                <div class="position-option" [class.active]="signaturePosition === 'bottom-left'" (click)="setSignaturePosition('bottom-left')">
+                  <div class="position-preview bottom-left"></div>
+                  <span>Bas gauche</span>
+                </div>
+                <div class="position-option" [class.active]="signaturePosition === 'bottom-center'" (click)="setSignaturePosition('bottom-center')">
+                  <div class="position-preview bottom-center"></div>
+                  <span>Bas centre</span>
+                </div>
+                <div class="position-option" [class.active]="signaturePosition === 'bottom-right'" (click)="setSignaturePosition('bottom-right')">
+                  <div class="position-preview bottom-right"></div>
+                  <span>Bas droite</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <!-- Word Document Preview -->
-        <div *ngIf="filePreviewType === 'word'" class="doc-viewer">
-          <div class="doc-viewer-content">
-            <i class="fas fa-file-word doc-icon"></i>
-            <h3>Document Word</h3>
-            <p>Les documents Word ne peuvent pas être prévisualisés directement dans le navigateur.</p>
-            <p>Votre signature sera ajoutée au document lors du processus de signature.</p>
-            <p>Le document signé sera téléchargé automatiquement après la signature.</p>
+      <!-- Section de signature -->
+      <div class="signing-section">
+        <form [formGroup]="signForm" class="signer-info">
+          <h2><i class="fas fa-user-edit"></i> Informations du signataire</h2>
+
+          <div class="form-group">
+            <label for="name">
+              <i class="fas fa-user"></i> Nom complet
+            </label>
+            <input
+              type="text"
+              id="name"
+              formControlName="fullName"
+              placeholder="Jean Dupont"
+              class="modern-input">
+            <small
+              class="error-message"
+              *ngIf="signForm.get('fullName')?.invalid && signForm.get('fullName')?.touched">
+              <i class="fas fa-exclamation-circle"></i> Le nom complet est requis
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="email">
+              <i class="fas fa-envelope"></i> Adresse email
+            </label>
+            <input
+              type="email"
+              id="email"
+              formControlName="email"
+              placeholder="jean.dupont@example.com"
+              class="modern-input">
+            <small
+              class="error-message"
+              *ngIf="signForm.get('email')?.invalid && signForm.get('email')?.touched">
+              <i class="fas fa-exclamation-circle"></i> Veuillez entrer une adresse email valide
+            </small>
+          </div>
+
+          <!-- Zone de signature -->
+          <div class="signature-area">
+            <h3><i class="fas fa-pen-fancy"></i> Signature électronique</h3>
+
+            <!-- Signature Type Selector -->
+            <div class="signature-type-selector">
+              <button type="button" class="signature-type-btn" [class.active]="signatureType === 'draw'" (click)="setSignatureType('draw')">
+                <i class="fas fa-pen"></i> Dessiner
+              </button>
+              <button type="button" class="signature-type-btn" [class.active]="signatureType === 'type'" (click)="setSignatureType('type')">
+                <i class="fas fa-keyboard"></i> Taper
+              </button>
+            </div>
+
+            <!-- Draw Signature -->
+            <div *ngIf="signatureType === 'draw'" class="signature-draw-container">
+              <div class="signature-options">
+                <div class="pen-color-options">
+                  <span class="option-label">Couleur:</span>
+                  <div class="color-option" [class.active]="penColor === '#1e3c72'" (click)="setPenColor('#1e3c72')" style="background-color: #1e3c72;"></div>
+                  <div class="color-option" [class.active]="penColor === '#000000'" (click)="setPenColor('#000000')" style="background-color: #000000;"></div>
+                  <div class="color-option" [class.active]="penColor === '#2563eb'" (click)="setPenColor('#2563eb')" style="background-color: #2563eb;"></div>
+                  <div class="color-option" [class.active]="penColor === '#7c3aed'" (click)="setPenColor('#7c3aed')" style="background-color: #7c3aed;"></div>
+                </div>
+                <div class="pen-size-options">
+                  <span class="option-label">Épaisseur:</span>
+                  <div class="size-option" [class.active]="penSize === 1" (click)="setPenSize(1)">S</div>
+                  <div class="size-option" [class.active]="penSize === 2" (click)="setPenSize(2)">M</div>
+                  <div class="size-option" [class.active]="penSize === 3" (click)="setPenSize(3)">L</div>
+                </div>
+              </div>
+
+              <canvas #signaturePad
+                      (mousedown)="startDrawing($event)"
+                      (mousemove)="draw($event)"
+                      (mouseup)="endDrawing()"
+                      (touchstart)="startDrawing($event)"
+                      (touchmove)="draw($event)"
+                      (touchend)="endDrawing()"></canvas>
+            </div>
+
+            <!-- Type Signature -->
+            <div *ngIf="signatureType === 'type'" class="signature-type-container">
+              <div class="signature-font-options">
+                <div class="font-option" [class.active]="selectedFont === 'Dancing Script'" (click)="setFont('Dancing Script')">
+                  <span style="font-family: 'Dancing Script', cursive;">Signature</span>
+                </div>
+                <div class="font-option" [class.active]="selectedFont === 'Pacifico'" (click)="setFont('Pacifico')">
+                  <span style="font-family: 'Pacifico', cursive;">Signature</span>
+                </div>
+                <div class="font-option" [class.active]="selectedFont === 'Satisfy'" (click)="setFont('Satisfy')">
+                  <span style="font-family: 'Satisfy', cursive;">Signature</span>
+                </div>
+              </div>
+              <input type="text" class="typed-signature-input" [style.fontFamily]="selectedFont" placeholder="Tapez votre signature personnalisée ici" formControlName="typedSignature" (input)="updateTypedSignature()">
+              <div class="signature-helper-text">Cette signature sera différente de votre nom complet dans le formulaire</div>
+            </div>
+
+
+
+
+            <div class="signature-controls">
+              <button type="button" class="btn btn-secondary"
+                      (click)="undo()" [disabled]="!canUndo || signatureType !== 'draw'">
+                <i class="fas fa-undo"></i> Annuler
+              </button>
+              <button type="button" class="btn btn-secondary"
+                      (click)="redo()" [disabled]="!canRedo || signatureType !== 'draw'">
+                <i class="fas fa-redo"></i> Refaire
+              </button>
+              <button type="button" class="btn btn-secondary"
+                      (click)="clearSignature()">
+                <i class="fas fa-eraser"></i> Effacer
+              </button>
+            </div>
+          </div>
+
+          <!-- Case à cocher de consentement -->
+          <label class="consent-check">
+            <input type="checkbox" formControlName="consent">
+              <span>Je certifie avoir pris connaissance et accepté les termes du contrat</span>
+          </label>
+
+          <!-- Boutons d'action -->
+          <div class="action-buttons">
+            <button class="btn btn-primary"
+                    (click)="submitSignature()"
+                    [disabled]="isLoading || signForm.invalid || !isSignatureValid() || !pdfFile">
+              <span *ngIf="!isLoading">
+                <i class="fas fa-signature"></i> Signer et Télécharger
+              </span>
+              <span *ngIf="isLoading">
+                <span class="spinner"></span> Signature en cours...
+              </span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Messages de validation -->
+        <div class="status-messages">
+          <div *ngIf="errorMessage" class="alert error">
+            <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+          </div>
+          <div *ngIf="successMessage" class="alert success">
+            <i class="fas fa-check-circle"></i> {{ successMessage }}
           </div>
         </div>
-
-        <!-- Other File Types -->
-        <div *ngIf="filePreviewType === 'other'" class="other-file-viewer">
-          <div class="other-file-content">
-            <i class="fas fa-file other-file-icon"></i>
-            <h3>Fichier prêt pour la signature</h3>
-            <p>Ce type de fichier ne peut pas être prévisualisé dans le navigateur.</p>
-            <p>Le document sera traité lors de la signature.</p>
+        <div class="field-errors">
+          <div *ngFor="let error of fieldErrors | keyvalue" class="error">
+            <i class="fas fa-exclamation-triangle"></i> {{ error.value }}
           </div>
         </div>
-
-        <!-- No File Selected -->
-        <div *ngIf="!filePreviewType && !pdfFile" class="no-file-selected">
-          <i class="fas fa-cloud-upload-alt upload-icon"></i>
-          <p>Sélectionnez un fichier pour commencer</p>
-        </div>
       </div>
-
-      <!-- File upload control -->
-      <div class="form-group upload-container">
-        <label for="pdfFile" class="upload-label">
-          <i class="fas fa-cloud-upload-alt icon"></i>
-          <span class="label-text">Téléchargez votre document ici</span>
-          <small>Format supporté: PDF, DOCX, DOC, RTF</small>
-          <span class="file-status" *ngIf="pdfFile">
-            <i class="fas fa-check-circle"></i> {{ pdfFile.name }} ({{ formattedFileSize }})
-          </span>
-        </label>
-        <input
-          type="file"
-          id="pdfFile"
-          (change)="onFileSelected($event)"
-          accept=".pdf,.docx,.doc,.rtf,.txt"
-          class="upload-input">
-      </div>
-    </div>
-  </div>
-
-  <!-- Section de signature -->
-  <div class="signing-section">
-    <form [formGroup]="signForm" class="signer-info">
-      <h2><i class="fas fa-user-edit"></i> Informations du signataire</h2>
-
-      <div class="form-group">
-        <label for="name">
-          <i class="fas fa-user"></i> Nom complet
-        </label>
-        <input
-          type="text"
-          id="name"
-          formControlName="fullName"
-          placeholder="Jean Dupont"
-          class="modern-input">
-        <small
-          class="error-message"
-          *ngIf="signForm.get('fullName')?.invalid && signForm.get('fullName')?.touched">
-          <i class="fas fa-exclamation-circle"></i> Le nom complet est requis
-        </small>
-      </div>
-
-      <div class="form-group">
-        <label for="email">
-          <i class="fas fa-envelope"></i> Adresse email
-        </label>
-        <input
-          type="email"
-          id="email"
-          formControlName="email"
-          placeholder="jean.dupont@example.com"
-          class="modern-input">
-        <small
-          class="error-message"
-          *ngIf="signForm.get('email')?.invalid && signForm.get('email')?.touched">
-          <i class="fas fa-exclamation-circle"></i> Veuillez entrer une adresse email valide
-        </small>
-      </div>
-
-      <!-- Zone de signature -->
-      <div class="signature-area">
-        <h3><i class="fas fa-pen-fancy"></i> Signature électronique</h3>
-        <canvas #signaturePad
-                (mousedown)="startDrawing($event)"
-                (mousemove)="draw($event)"
-                (mouseup)="endDrawing()"
-                (touchstart)="startDrawing($event)"
-                (touchmove)="draw($event)"
-                (touchend)="endDrawing()"></canvas>
-
-        <div class="signature-controls">
-          <button type="button" class="btn btn-secondary"
-                  (click)="undo()" [disabled]="!canUndo">
-            <i class="fas fa-undo"></i> Annuler
-          </button>
-          <button type="button" class="btn btn-secondary"
-                  (click)="redo()" [disabled]="!canRedo">
-            <i class="fas fa-redo"></i> Refaire
-          </button>
-          <button type="button" class="btn btn-secondary"
-                  (click)="clearSignature()">
-            <i class="fas fa-eraser"></i> Effacer
-          </button>
-        </div>
-      </div>
-
-      <!-- Case à cocher de consentement -->
-      <label class="consent-check">
-        <input type="checkbox" formControlName="consent">
-          <span>Je certifie avoir pris connaissance et accepté les termes du contrat</span>
-      </label>
-
-      <!-- Boutons d'action -->
-      <div class="action-buttons">
-        <button class="btn btn-primary"
-                (click)="submitSignature()"
-                [disabled]="isLoading || signForm.invalid || !isSignatureValid() || !pdfFile">
-          <span *ngIf="!isLoading">
-            <i class="fas fa-signature"></i> Signer et Télécharger
-          </span>
-          <span *ngIf="isLoading">
-            <span class="spinner"></span> Signature en cours...
-          </span>
-        </button>
-      </div>
-    </form>
-
-    <!-- Messages de validation -->
-    <div class="status-messages">
-      <div *ngIf="errorMessage" class="alert error">
-        <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
-      </div>
-      <div *ngIf="successMessage" class="alert success">
-        <i class="fas fa-check-circle"></i> {{ successMessage }}
-      </div>
-    </div>
-    <div class="field-errors">
-      <div *ngFor="let error of fieldErrors | keyvalue" class="error">
-        <i class="fas fa-exclamation-triangle"></i> {{ error.value }}
-      </div>
-    </div>
-
-  </div>
+    </div> <!-- End of security-container -->
+  </div> <!-- End of feature-content -->
 </section>
 
 <app-footer></app-footer>

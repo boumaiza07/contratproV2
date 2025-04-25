@@ -4,6 +4,7 @@ import { LogService } from '../auth/services/log.service';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
+import { NotificationService } from '../services/notification.service';
 
 @Component({
   standalone: true,
@@ -24,7 +25,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private authCheckInterval: any;
   private subscriptions: Subscription[] = [];
 
-  constructor(private logService: LogService, private router: Router) {}
+  constructor(
+    private logService: LogService,
+    private router: Router,
+    private notificationService: NotificationService
+  ) {}
 
   ngOnInit(): void {
     // Vérifier l'état d'authentification au démarrage
@@ -121,11 +126,19 @@ export class NavbarComponent implements OnInit, OnDestroy {
     // Utiliser requestAnimationFrame pour décaler le chargement des notifications
     // Cela est plus performant et moins susceptible de causer des problèmes
     requestAnimationFrame(() => {
-      // Ici, vous pourriez faire un appel API pour charger les notifications réelles
-      // Pour l'instant, on utilise une valeur fictive
-      this.notificationCount = 2;
-      // Utiliser console.debug pour réduire les logs en production
-      console.debug('Notifications chargées:', this.notificationCount);
+      // Charger le nombre de notifications non lues depuis le service
+      const sub = this.notificationService.getUnreadCount().subscribe({
+        next: (count) => {
+          this.notificationCount = count;
+          console.debug('Notifications non lues:', this.notificationCount);
+        },
+        error: (error) => {
+          console.error('Erreur lors du chargement des notifications:', error);
+          this.notificationCount = 0;
+        }
+      });
+
+      this.subscriptions.push(sub);
     });
   }
 

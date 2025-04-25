@@ -109,37 +109,16 @@ class DocumentProcessingService
             }
 
             switch ($extension) {
-                case 'txt':
-                    try {
-                        $content = file_get_contents($file->getPathname());
-                        if ($content === false) {
-                            \Log::error('Failed to read TXT file: ' . $file->getPathname());
-                            return [];
-                        }
-                    } catch (\Exception $e) {
-                        \Log::error('Error reading TXT file: ' . $e->getMessage());
-                        return [];
-                    }
-                    break;
                 case 'docx':
+                case 'doc':
                     $content = $this->extractDocxContent($file);
                     break;
                 case 'pdf':
                     $content = $this->extractPdfContent($file);
                     break;
                 default:
-                    // Essayer de traiter comme un fichier texte
-                    \Log::warning('Unsupported file type: ' . $extension . '. Trying to process as text file.');
-                    try {
-                        $content = @file_get_contents($file->getPathname());
-                        if ($content === false) {
-                            \Log::error('Failed to read file as text: ' . $file->getPathname());
-                            return [];
-                        }
-                    } catch (\Exception $e) {
-                        \Log::error('Error reading file as text: ' . $e->getMessage());
-                        return [];
-                    }
+                    \Log::warning('Unsupported file type: ' . $extension . '. Only PDF and Word documents are supported.');
+                    return [];
             }
 
             // Vérifier si le contenu est vide

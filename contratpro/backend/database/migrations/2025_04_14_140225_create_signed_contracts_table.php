@@ -15,8 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('nom_contrat');
             $table->string('email_signataire');
+            $table->text('signature_data')->nullable();
             $table->string('file_path');
+            $table->string('file_type')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('unsigned_contract_id')->nullable();
             $table->timestamps();
         });
     }

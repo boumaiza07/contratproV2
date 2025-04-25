@@ -29,9 +29,8 @@ class DocumentGenerationService
         try {
             switch ($extension) {
                 case 'docx':
+                case 'doc':
                     return $this->generateDocxDocument($originalFilePath, $replacements);
-                case 'txt':
-                    return $this->generateTextDocument($originalFilePath, $replacements);
                 case 'pdf':
                     return $this->generatePdfDocument($originalFilePath, $replacements);
                 case 'html':
@@ -179,46 +178,7 @@ class DocumentGenerationService
         }
     }
 
-    /**
-     * Generate a new text document from a template
-     *
-     * @param string $originalFilePath Path to the original text file
-     * @param array $replacements Key-value pairs for replacements
-     * @return string|null Path to the generated file or null on failure
-     */
-    private function generateTextDocument(string $originalFilePath, array $replacements): ?string
-    {
-        try {
-            Log::info('Generating text document from template: ' . $originalFilePath);
 
-            // Create a unique filename for the generated document
-            $outputFilename = 'generated_' . time() . '_' . basename($originalFilePath);
-            $outputPath = 'generated/' . $outputFilename;
-
-            // Ensure the storage directory exists
-            if (!Storage::disk('public')->exists('generated')) {
-                Storage::disk('public')->makeDirectory('generated');
-            }
-
-            // Read the original file content
-            $content = Storage::disk('public')->get($originalFilePath);
-
-            // Replace each placeholder with its value
-            foreach ($replacements as $placeholder => $value) {
-                $content = str_replace('${'.$placeholder.'}', $value, $content);
-                Log::debug("Replaced placeholder: \${$placeholder} with value: {$value}");
-            }
-
-            // Save the generated document
-            Storage::disk('public')->put($outputPath, $content);
-
-            Log::info('Text document generated successfully: ' . $outputPath);
-            return $outputPath;
-        } catch (\Exception $e) {
-            Log::error('Error generating text document: ' . $e->getMessage());
-            return null;
-        }
-    }
 
     /**
      * Generate a new PDF document from a template

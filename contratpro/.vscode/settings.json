@@ -6,10 +6,6 @@
       "args": [],
       "icon": "terminal-cmd"
     },
-    "PowerShell": {
-      "source": "PowerShell",
-      "icon": "terminal-powershell"
-    },
     "Git Bash": {
       "source": "Git Bash"
     }

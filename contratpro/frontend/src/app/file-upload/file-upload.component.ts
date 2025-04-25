@@ -7,6 +7,7 @@ import { SpinnerComponent } from '../shared/components/spinner/spinner.component
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-file-upload',
@@ -26,9 +27,11 @@ import { Subscription } from 'rxjs';
 export class FileUploadComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef;
 
+  // File upload properties
   selectedFile: File | null = null;
   currentFileName: string = '';
   fileList: string[] = [];
+  filteredFiles: string[] = [];
   isUploading: boolean = false;
   isLoadingFiles: boolean = false;
   uploadProgress: number = 0;
@@ -38,25 +41,72 @@ export class FileUploadComponent implements OnInit, OnDestroy {
   generatedDocumentUrl: string | null = null;
   generationError: string | null = null;
   generatedUnsignedContractId: number | null = null;
+  reloadCountdown: number = 0;
+  maxFileSize: number = 10 * 1024 * 1024; // 10MB in bytes
+  isDragOver: boolean = false;
+  filePreviewUrl: SafeResourceUrl | null = null;
+
+  // Search and filter properties
+  searchTerm: string = '';
+  fileTypeFilter: 'all' | 'pdf' | 'word' = 'all';
 
   // Add date-related properties
   currentDate = new Date();
   formattedDate = this.currentDate.toLocaleDateString('fr-FR');
 
-  // Ajouter une propriété pour stocker les souscriptions
+  // Subscription management
   private subscriptions: Subscription[] = [];
 
   constructor(
-    private http: HttpClient
+    private http: HttpClient,
+    private sanitizer: DomSanitizer
   ) {}
 
   onFileSelected(event: any): void {
     const file = event.target.files[0];
     if (file) {
-      this.selectedFile = file;
-      this.uploadMessage = '';
-      this.uploadProgress = 0;
-      this.uploadFile();
+      this.processFile(file);
+    }
+  }
+
+  onFileDropped(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.dataTransfer?.files.length) {
+      const file = event.dataTransfer.files[0];
+      this.processFile(file);
+    }
+  }
+
+  processFile(file: File): void {
+    // Check file type
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    const validExtensions = ['pdf', 'doc', 'docx'];
+
+    if (!validExtensions.includes(fileExtension || '')) {
+      this.uploadMessage = 'Format de fichier non supporté. Veuillez utiliser PDF ou Word (.pdf, .doc, .docx).';
+      this.fileInput.nativeElement.value = '';
+      return;
+    }
+
+    // Check file size
+    if (file.size > this.maxFileSize) {
+      this.uploadMessage = 'Le fichier est trop volumineux. La taille maximale est de 10 MB.';
+      this.fileInput.nativeElement.value = '';
+      return;
+    }
+
+    this.selectedFile = file;
+    this.uploadMessage = '';
+    this.uploadProgress = 0;
+
+    // Create file preview URL for PDF files
+    if (file.type === 'application/pdf') {
+      const fileURL = URL.createObjectURL(file);
+      this.filePreviewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(fileURL);
+    } else {
+      this.filePreviewUrl = null;
     }
   }
 
@@ -110,7 +160,7 @@ export class FileUploadComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Ajouter la souscription au tableau pour pouvoir la nettoyer plus tard
+    // Track subscription for cleanup
     this.subscriptions.push(subscription);
   }
 
@@ -120,6 +170,7 @@ export class FileUploadComponent implements OnInit, OnDestroy {
       next: (response) => {
         if (response.success) {
           this.fileList = response.files.map((file: any) => file.filename);
+          this.filterFiles(); // Apply any active filters
         }
       },
       error: (error) => {
@@ -130,8 +181,97 @@ export class FileUploadComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Ajouter la souscription au tableau
+    // Track subscription for cleanup
     this.subscriptions.push(subscription);
+  }
+
+  // File utility methods
+  getFileType(file: File): string {
+    return file.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'Word';
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  removeSelectedFile(event: Event): void {
+    event.stopPropagation(); // Prevent click from propagating to parent
+    this.selectedFile = null;
+    this.filePreviewUrl = null;
+    this.fileInput.nativeElement.value = '';
+    this.uploadProgress = 0;
+    this.uploadMessage = '';
+  }
+
+  // Search and filter methods
+  filterFiles(): void {
+    if (!this.fileList.length) {
+      this.filteredFiles = [];
+      return;
+    }
+
+    let result = [...this.fileList];
+
+    // Apply search term filter
+    if (this.searchTerm) {
+      const term = this.searchTerm.toLowerCase();
+      result = result.filter(file => file.toLowerCase().includes(term));
+    }
+
+    // Apply file type filter
+    if (this.fileTypeFilter !== 'all') {
+      if (this.fileTypeFilter === 'pdf') {
+        result = result.filter(file => file.toLowerCase().endsWith('.pdf'));
+      } else if (this.fileTypeFilter === 'word') {
+        result = result.filter(file =>
+          file.toLowerCase().endsWith('.doc') || file.toLowerCase().endsWith('.docx')
+        );
+      }
+    }
+
+    this.filteredFiles = result;
+  }
+
+  setFileTypeFilter(filter: 'all' | 'pdf' | 'word'): void {
+    this.fileTypeFilter = filter;
+    this.filterFiles();
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.fileTypeFilter = 'all';
+    this.filterFiles();
+  }
+
+  // File actions
+  downloadFile(filename: string): void {
+    window.open(`/api/files/download/${filename}`, '_blank');
+  }
+
+  deleteFile(filename: string): void {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer le fichier "${filename}"?`)) {
+      const subscription = this.http.delete(`/api/files/delete/${filename}`).subscribe({
+        next: (response: any) => {
+          if (response.success) {
+            this.uploadMessage = 'Fichier supprimé avec succès';
+            this.loadFiles();
+          }
+        },
+        error: (error) => {
+          console.error('Failed to delete file:', error);
+          this.uploadMessage = 'Échec de la suppression du fichier';
+        }
+      });
+
+      // Track subscription for cleanup
+      this.subscriptions.push(subscription);
+    }
   }
 
   deleteAllFiles(): void {
@@ -149,7 +289,7 @@ export class FileUploadComponent implements OnInit, OnDestroy {
         }
       });
 
-      // Ajouter la souscription au tableau
+      // Track subscription for cleanup
       this.subscriptions.push(subscription);
     }
   }
@@ -173,7 +313,7 @@ export class FileUploadComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Ajouter la souscription au tableau
+    // Track subscription for cleanup
     this.subscriptions.push(subscription);
   }
 
@@ -211,6 +351,17 @@ export class FileUploadComponent implements OnInit, OnDestroy {
           this.generatedDocumentUrl = response.file.download_url;
           this.generatedUnsignedContractId = response.file.unsigned_contract_id || null;
           console.log('Generated unsigned contract ID:', this.generatedUnsignedContractId);
+
+          // Start countdown for page reload
+          this.reloadCountdown = 5;
+          const countdownInterval = setInterval(() => {
+            this.reloadCountdown--;
+            if (this.reloadCountdown <= 0) {
+              clearInterval(countdownInterval);
+              console.log('Reloading page after document generation...');
+              window.location.reload();
+            }
+          }, 1000);
         } else {
           console.error('Failed to generate document:', response.message);
           this.generationError = 'Failed to generate document: ' + response.message;
@@ -225,12 +376,15 @@ export class FileUploadComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Add the subscription to the array
+    // Track subscription for cleanup
     this.subscriptions.push(subscription);
   }
 
 
   ngOnInit(): void {
+    // Initialize filteredFiles
+    this.filteredFiles = [...this.fileList];
+
     // Utiliser requestAnimationFrame pour décaler le chargement des fichiers
     // Cela est plus performant et moins susceptible de causer des problèmes
     requestAnimationFrame(() => {
@@ -239,7 +393,12 @@ export class FileUploadComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Nettoyer toutes les souscriptions lors de la destruction du composant
+    // Clean up all subscriptions
     this.subscriptions.forEach(sub => sub.unsubscribe());
+
+    // Clean up any object URLs to prevent memory leaks
+    if (this.filePreviewUrl) {
+      URL.revokeObjectURL(this.filePreviewUrl.toString());
+    }
   }
 }

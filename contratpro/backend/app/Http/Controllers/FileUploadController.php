@@ -52,12 +52,26 @@ class FileUploadController extends Controller
             $originalName = $file->getClientOriginalName();
             $extension = $file->getClientOriginalExtension();
 
-            // Vérifier l'extension du fichier
-            $allowedExtensions = ['txt', 'docx', 'pdf'];
+            // Vérifier l'extension du fichier - seulement PDF et Word
+            $allowedExtensions = ['docx', 'doc', 'pdf'];
             if (!in_array(strtolower($extension), $allowedExtensions)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unsupported file type. Allowed types: ' . implode(', ', $allowedExtensions)
+                    'message' => 'Format de fichier non supporté. Veuillez utiliser PDF ou Word (.pdf, .doc, .docx).'
+                ], 400);
+            }
+
+            // Vérifier également le type MIME
+            $allowedMimeTypes = [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ];
+
+            if (!in_array($file->getMimeType(), $allowedMimeTypes)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Format de fichier non supporté. Veuillez utiliser PDF ou Word (.pdf, .doc, .docx).'
                 ], 400);
             }
 
@@ -218,6 +232,45 @@ class FileUploadController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Data extraction failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a specific file by filename
+     *
+     * @param string $filename
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteFile($filename)
+    {
+        try {
+            $path = 'uploads/' . $filename;
+
+            if (!Storage::disk('public')->exists($path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Fichier non trouvé'
+                ], 404);
+            }
+
+            if (Storage::disk('public')->delete($path)) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Fichier supprimé avec succès'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Échec de la suppression du fichier'
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error deleting file: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la suppression du fichier: ' . $e->getMessage()
             ], 500);
         }
     }

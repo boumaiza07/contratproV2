@@ -1,13 +1,14 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { Chart, ChartConfiguration, ChartOptions, registerables, ChartTypeRegistry } from 'chart.js';
+import { Router } from '@angular/router';
+import { Subject, forkJoin, of, throwError } from 'rxjs';
+import { catchError, finalize, takeUntil } from 'rxjs/operators';
 
 // Register all Chart.js components
 Chart.register(...registerables);
 import { NavbarComponent } from "../navbar/navbar.component";
 import { FooterComponent } from "../footer/footer.component";
 import { CommonModule } from '@angular/common';
-import { ContractService } from '../services/contract.service';
 import { SignedContractService } from '../services/signed-contract.service';
 import { UnsignedContractService } from '../services/unsigned-contract.service';
 
@@ -18,14 +19,31 @@ import { UnsignedContractService } from '../services/unsigned-contract.service';
   styleUrls: ['./dashboard.component.css'],
   imports: [NavbarComponent, FooterComponent, CommonModule],
 })
-export class DashboardComponent implements OnInit, AfterViewInit {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('activityChart') activityChartRef!: ElementRef;
   @ViewChild('completionChart') completionChartRef!: ElementRef;
 
   currentDate = new Date();
-  filterPeriod: 'week' | 'month' | 'quarter' | 'year' = 'month';
   activityChart: Chart | null = null;
   completionChart: Chart | null = null;
+
+  // Loading state
+  isLoading = false;
+
+  // Pagination
+  currentPage = 1;
+  pageSize = 10;
+  totalItems = 0;
+
+  // Sorting
+  sortField: string = 'id';
+  sortDirection: 'asc' | 'desc' = 'desc';
+
+  // Selected contract for details
+  selectedContract: any = null;
+
+  // Destroy subject for unsubscribing
+  private destroy$ = new Subject<void>();
 
   metrics = {
     active: 0,
@@ -52,11 +70,13 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     textGray: '#cccccc'      // --text-light-gray
   };
 
+  // Math object for template use
+  Math = Math;
+
   constructor(
-    private router: Router,
-    private contractService: ContractService,
     private signedContractService: SignedContractService,
-    private unsignedContractService: UnsignedContractService
+    private unsignedContractService: UnsignedContractService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -72,16 +92,44 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     }, 300);
   }
 
+  ngOnDestroy(): void {
+    // Clean up subscriptions
+    this.destroy$.next();
+    this.destroy$.complete();
+
+    // Clean up charts
+    if (this.activityChart) {
+      this.activityChart.destroy();
+    }
+    if (this.completionChart) {
+      this.completionChart.destroy();
+    }
+  }
+
   private setCurrentDate(): void {
     this.currentDate = new Date();
   }
 
   loadDashboardData(): void {
     console.log('Loading dashboard data...');
+    this.isLoading = true;
 
     // Load signed contracts
-    this.signedContractService.getSignedContracts().subscribe(
-      data => {
+    this.signedContractService.getSignedContracts()
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError(error => {
+          console.error('Error fetching signed contracts:', error);
+          return of({ data: [] });
+        }),
+        finalize(() => {
+          // This will run after the observable completes or errors
+          if (!this.unsignedContracts.length) {
+            this.isLoading = false;
+          }
+        })
+      )
+      .subscribe(data => {
         console.log('Signed contracts response:', data);
 
         // Handle different response formats
@@ -97,114 +145,79 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         }
 
         console.log('Processed signed contracts:', this.signedContracts);
+        this.loadUnsignedContracts();
+      });
+  }
 
-        // Load unsigned contracts
-        this.unsignedContractService.getUnsignedContracts().subscribe(
-          data => {
-            console.log('Unsigned contracts response:', data);
+  loadUnsignedContracts(): void {
+    // Load unsigned contracts
+    this.unsignedContractService.getUnsignedContracts()
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError(error => {
+          console.error('Error fetching unsigned contracts:', error);
+          return of({ data: [] });
+        }),
+        finalize(() => {
+          this.isLoading = false;
+          this.processContractData();
+        })
+      )
+      .subscribe(data => {
+        console.log('Unsigned contracts response:', data);
 
-            // Handle different response formats
-            if (data && data.data) {
-              this.unsignedContracts = data.data;
-            } else if (Array.isArray(data)) {
-              this.unsignedContracts = data;
-            } else if (data && data.current_page) {
-              // Laravel pagination format
-              this.unsignedContracts = data.data || [];
-            } else {
-              this.unsignedContracts = [];
-            }
+        // Handle different response formats
+        if (data && data.data) {
+          this.unsignedContracts = data.data;
+        } else if (Array.isArray(data)) {
+          this.unsignedContracts = data;
+        } else if (data && data.current_page) {
+          // Laravel pagination format
+          this.unsignedContracts = data.data || [];
+        } else {
+          this.unsignedContracts = [];
+        }
 
-            console.log('Processed unsigned contracts:', this.unsignedContracts);
+        console.log('Processed unsigned contracts:', this.unsignedContracts);
+      });
+  }
 
-            // Combine all contracts for the 'all' tab
-            this.contracts = [
-              ...this.signedContracts.map(contract => ({
-                ...contract,
-                type: 'signed',
-                status: 'signed',
-                client: contract.nom_contrat || 'Unnamed Contract',
-                startDate: new Date(contract.created_at),
-                progress: 100
-              })),
-              ...this.unsignedContracts.map(contract => ({
-                ...contract,
-                type: 'unsigned',
-                status: contract.status || 'pending',
-                client: contract.nom_contrat || 'Unnamed Contract',
-                startDate: new Date(contract.created_at),
-                progress: 50
-              }))
-            ];
+  processContractData(): void {
+    // Combine all contracts for the 'all' tab
+    this.contracts = [
+      ...this.signedContracts.map(contract => ({
+        ...contract,
+        type: 'signed',
+        status: 'signed',
+        client: contract.nom_contrat || 'Unnamed Contract',
+        startDate: new Date(contract.created_at),
+        progress: 100
+      })),
+      ...this.unsignedContracts.map(contract => ({
+        ...contract,
+        type: 'unsigned',
+        status: contract.status || 'pending',
+        client: contract.nom_contrat || 'Unnamed Contract',
+        startDate: new Date(contract.created_at),
+        progress: 50
+      }))
+    ];
 
-            console.log('Combined contracts:', this.contracts);
+    console.log('Combined contracts:', this.contracts);
 
-            // Update filtered contracts based on active tab
-            this.updateFilteredContracts();
-            console.log('Filtered contracts:', this.filteredContracts);
+    // Sort contracts based on current sort settings
+    this.sortContracts();
 
-            // Calculate metrics
-            this.calculateMetrics();
-            console.log('Metrics:', this.metrics);
+    // Update filtered contracts based on active tab
+    this.updateFilteredContracts();
+    console.log('Filtered contracts:', this.filteredContracts);
 
-            // Update charts
-            this.updateCharts();
-          },
-          error => {
-            console.error('Error fetching unsigned contracts:', error);
-            this.unsignedContracts = [];
-            this.updateFilteredContracts();
-            this.calculateMetrics();
-            this.updateCharts();
-          }
-        );
-      },
-      error => {
-        console.error('Error fetching signed contracts:', error);
-        this.signedContracts = [];
+    // Calculate metrics
+    this.calculateMetrics();
+    console.log('Metrics:', this.metrics);
 
-        // Still try to load unsigned contracts
-        this.unsignedContractService.getUnsignedContracts().subscribe(
-          data => {
-            console.log('Unsigned contracts response (after signed error):', data);
-
-            // Handle different response formats
-            if (data && data.data) {
-              this.unsignedContracts = data.data;
-            } else if (Array.isArray(data)) {
-              this.unsignedContracts = data;
-            } else if (data && data.current_page) {
-              // Laravel pagination format
-              this.unsignedContracts = data.data || [];
-            } else {
-              this.unsignedContracts = [];
-            }
-
-            // Update contracts and UI
-            this.contracts = this.unsignedContracts.map(contract => ({
-              ...contract,
-              type: 'unsigned',
-              status: contract.status || 'pending',
-              client: contract.nom_contrat || 'Unnamed Contract',
-              startDate: new Date(contract.created_at),
-              progress: 50
-            }));
-
-            this.updateFilteredContracts();
-            this.calculateMetrics();
-            this.updateCharts();
-          },
-          error => {
-            console.error('Error fetching unsigned contracts after signed error:', error);
-            this.unsignedContracts = [];
-            this.contracts = [];
-            this.filteredContracts = [];
-            this.calculateMetrics();
-            this.updateCharts();
-          }
-        );
-      }
-    );
+    // Update charts
+    this.updateCharts();
   }
 
   calculateMetrics(): void {
@@ -242,10 +255,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     }
   }
 
-  setFilterPeriod(period: 'week' | 'month' | 'quarter' | 'year'): void {
-    this.filterPeriod = period;
-    this.loadDashboardData();
-  }
+
 
   searchContracts(event: Event): void {
     const searchTerm = (event.target as HTMLInputElement).value.toLowerCase();
@@ -332,7 +342,11 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     if (this.activityChart) {
       const activityData = this.getActivityData();
       console.log('Activity chart data:', activityData);
-      this.activityChart.data.datasets[0].data = activityData;
+
+      // Update both datasets
+      this.activityChart.data.datasets[0].data = activityData.signed;
+      this.activityChart.data.datasets[1].data = activityData.unsigned;
+
       // @ts-ignore - TypeScript doesn't recognize the 'none' mode but it's valid
       this.activityChart.update('none'); // Use 'none' animation mode for smoother updates
     } else {
@@ -374,38 +388,40 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     }
   }
 
-  getActivityData(): number[] {
+  getActivityData(): { signed: number[], unsigned: number[] } {
     // This would typically come from the API based on the selected period
     const labels = this.getLabelsForPeriod();
 
     // For demonstration, generate data based on the total number of contracts
     // with some randomness to make it look realistic
-    const baseValue = Math.max(1, Math.floor(this.metrics.total / labels.length));
+    const baseSignedValue = Math.max(1, Math.floor(this.metrics.signed / labels.length));
+    const baseUnsignedValue = Math.max(1, Math.floor(this.metrics.unsigned / labels.length));
 
     // Generate data with a slight upward trend and some randomness
-    return labels.map((_, index) => {
+    const signedData = labels.map((_, index) => {
       // Add a slight upward trend
-      const trendFactor = 1 + (index * 0.1);
+      const trendFactor = 1 + (index * 0.08);
       // Add some randomness (±30%)
       const randomFactor = 0.7 + (Math.random() * 0.6);
       // Calculate the value
-      return Math.max(1, Math.floor(baseValue * trendFactor * randomFactor));
+      return Math.max(1, Math.floor(baseSignedValue * trendFactor * randomFactor));
     });
+
+    const unsignedData = labels.map((_, index) => {
+      // Add a different trend for unsigned contracts
+      const trendFactor = 1 + (index * 0.05);
+      // Add some randomness (±30%)
+      const randomFactor = 0.7 + (Math.random() * 0.6);
+      // Calculate the value
+      return Math.max(1, Math.floor(baseUnsignedValue * trendFactor * randomFactor));
+    });
+
+    return { signed: signedData, unsigned: unsignedData };
   }
 
   getLabelsForPeriod(): string[] {
-    switch (this.filterPeriod) {
-      case 'week':
-        return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      case 'month':
-        return ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-      case 'quarter':
-        return ['Month 1', 'Month 2', 'Month 3'];
-      case 'year':
-        return ['Q1', 'Q2', 'Q3', 'Q4'];
-      default:
-        return [];
-    }
+    // Default to month view
+    return ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
   }
 
   initActivityChart(): void {
@@ -426,18 +442,50 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       const labels = this.getLabelsForPeriod();
       console.log('Activity chart labels:', labels);
 
-      // Prepare chart data
+      // Get activity data
+      const activityData = this.getActivityData();
+
+      // Prepare chart data with multiple datasets for a more modern look
       const data = {
         labels: labels,
-        datasets: [{
-          label: 'Contract Activity',
-          data: this.getActivityData(),
-          backgroundColor: 'rgba(59, 130, 246, 0.2)',
-          borderColor: 'rgba(59, 130, 246, 1)',
-          borderWidth: 2,
-          tension: 0.4,
-          fill: true
-        }]
+        datasets: [
+          {
+            label: 'Signed Contracts',
+            data: activityData.signed,
+            backgroundColor: 'rgba(16, 185, 129, 0.2)', // Green with transparency
+            borderColor: 'rgba(16, 185, 129, 1)',       // Solid green
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: 'rgba(16, 185, 129, 1)',
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 2,
+            order: 1
+          },
+          {
+            label: 'Unsigned Contracts',
+            data: activityData.unsigned,
+            backgroundColor: 'rgba(59, 130, 246, 0.2)', // Blue with transparency
+            borderColor: 'rgba(59, 130, 246, 1)',       // Solid blue
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: 'rgba(59, 130, 246, 1)',
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 2,
+            order: 2
+          }
+        ]
       };
 
       // Chart configuration with proper type annotation
@@ -447,6 +495,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
           scales: {
             y: {
               beginAtZero: true,
@@ -454,7 +506,23 @@ export class DashboardComponent implements OnInit, AfterViewInit {
                 color: 'rgba(200, 200, 200, 0.2)'
               },
               ticks: {
-                color: 'rgba(100, 116, 139, 0.8)'
+                color: 'rgba(100, 116, 139, 0.8)',
+                padding: 10,
+                font: {
+                  size: 11
+                }
+              },
+              title: {
+                display: true,
+                text: 'Number of Contracts',
+                color: 'rgba(100, 116, 139, 0.8)',
+                font: {
+                  size: 12,
+                  weight: 500
+                },
+                padding: {
+                  bottom: 10
+                }
               }
             },
             x: {
@@ -462,22 +530,49 @@ export class DashboardComponent implements OnInit, AfterViewInit {
                 display: false
               },
               ticks: {
-                color: 'rgba(100, 116, 139, 0.8)'
+                color: 'rgba(100, 116, 139, 0.8)',
+                padding: 10,
+                font: {
+                  size: 11
+                }
               }
             }
           },
           plugins: {
             legend: {
-              display: false
+              display: true,
+              position: 'top',
+              align: 'end',
+              labels: {
+                boxWidth: 12,
+                padding: 15,
+                usePointStyle: true,
+                pointStyle: 'circle',
+                font: {
+                  size: 12
+                }
+              }
             },
             tooltip: {
               backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              padding: 10,
+              padding: 12,
               titleColor: '#fff',
               bodyColor: '#fff',
-              borderColor: 'rgba(200, 200, 200, 0.25)',
+              borderColor: 'rgba(255, 255, 255, 0.1)',
               borderWidth: 1,
-              displayColors: false
+              displayColors: true,
+              boxWidth: 8,
+              boxHeight: 8,
+              usePointStyle: true,
+              cornerRadius: 6,
+              callbacks: {
+                title: function(tooltipItems) {
+                  return tooltipItems[0].label;
+                },
+                label: function(context) {
+                  return ` ${context.dataset.label}: ${context.parsed.y} contracts`;
+                }
+              }
             }
           }
         }
@@ -575,52 +670,206 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     }
   }
 
-  /**
-   * View contract details
-   */
-  viewContract(contract: any): void {
-    console.log('Viewing contract:', contract);
 
-    if (contract.type === 'signed') {
-      // Navigate to signed contract details page
-      this.router.navigate(['/security', contract.id], { queryParams: { type: 'signed' } });
-    } else {
-      // Navigate to unsigned contract details page
-      this.router.navigate(['/security', contract.id], { queryParams: { type: 'unsigned' } });
-    }
+
+  /**
+   * Sort contracts based on current sort field and direction
+   */
+  sortContracts(): void {
+    this.contracts.sort((a, b) => {
+      let valueA: any;
+      let valueB: any;
+
+      // Handle different sort fields
+      switch (this.sortField) {
+        case 'id':
+          valueA = a.id;
+          valueB = b.id;
+          break;
+        case 'client':
+          valueA = a.client || a.nom_contrat || '';
+          valueB = b.client || b.nom_contrat || '';
+          break;
+        case 'date':
+          valueA = new Date(a.created_at || a.startDate).getTime();
+          valueB = new Date(b.created_at || b.startDate).getTime();
+          break;
+        case 'status':
+          valueA = a.status || '';
+          valueB = b.status || '';
+          break;
+        case 'type':
+          valueA = a.type || '';
+          valueB = b.type || '';
+          break;
+        default:
+          valueA = a.id;
+          valueB = b.id;
+      }
+
+      // Compare values based on sort direction
+      if (this.sortDirection === 'asc') {
+        return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+      } else {
+        return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+      }
+    });
   }
 
   /**
-   * Download contract file
+   * Change sort field or direction
+   */
+  setSortField(field: string): void {
+    if (this.sortField === field) {
+      // Toggle direction if clicking the same field
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      // Set new field and default to descending
+      this.sortField = field;
+      this.sortDirection = 'desc';
+    }
+
+    // Re-sort the data
+    this.sortContracts();
+    this.updateFilteredContracts();
+  }
+
+  /**
+   * View contract details
+   */
+  viewContractDetails(contract: any): void {
+    this.selectedContract = contract;
+  }
+
+  /**
+   * Close contract details modal
+   */
+  closeContractDetails(): void {
+    this.selectedContract = null;
+  }
+
+  /**
+   * Download contract
    */
   downloadContract(contract: any): void {
-    console.log('Downloading contract:', contract);
+    this.isLoading = true;
 
-    if (contract.type === 'signed') {
-      // Download signed contract
-      this.signedContractService.downloadSignedContract(contract.id).subscribe(
-        (blob: Blob) => {
-          console.log('Signed contract downloaded successfully');
-          this.downloadFile(blob, `signed_contract_${contract.id}.pdf`);
-        },
-        (error) => {
-          console.error('Error downloading signed contract:', error);
-          alert('Failed to download signed contract. Please try again.');
+    // Get the service based on contract type
+    const service = contract.type === 'signed'
+      ? this.signedContractService.downloadSignedContract(contract.id)
+      : this.unsignedContractService.downloadUnsignedContract(contract.id);
+
+    service.pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.isLoading = false)
+    ).subscribe({
+      next: (blob: Blob) => {
+        // Determine file extension based on MIME type
+        let fileExtension = '.pdf'; // Default extension
+
+        if (blob.type) {
+          // Map common MIME types to extensions - only PDF and Word
+          const mimeToExtension: Record<string, string> = {
+            'application/pdf': '.pdf',
+            'application/msword': '.doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx'
+          };
+
+          // Use the mapped extension or keep default
+          fileExtension = mimeToExtension[blob.type] || fileExtension;
+          console.log('File MIME type:', blob.type, 'Extension:', fileExtension);
         }
-      );
-    } else {
-      // Download unsigned contract
-      this.unsignedContractService.downloadUnsignedContract(contract.id).subscribe(
-        (blob: Blob) => {
-          console.log('Unsigned contract downloaded successfully');
-          this.downloadFile(blob, `unsigned_contract_${contract.id}.pdf`);
-        },
-        (error) => {
-          console.error('Error downloading unsigned contract:', error);
-          alert('Failed to download unsigned contract. Please try again.');
-        }
-      );
+
+        // Create a name for the file using contract info and the appropriate extension
+        const fileName = `${contract.client || contract.nom_contrat || 'contract'}${fileExtension}`;
+
+        // Create a download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+
+        // Clean up
+        window.URL.revokeObjectURL(url);
+        a.remove();
+
+        console.log('Contract downloaded successfully:', fileName);
+      },
+      error: (error) => {
+        console.error('Error downloading contract:', error);
+        alert('Failed to download contract. Please try again.');
+      }
+    });
+  }
+
+  /**
+   * Sign unsigned contract
+   * Redirects to the security page with the contract ID as a query parameter
+   */
+  signContract(contract: any): void {
+    if (contract.type !== 'unsigned') {
+      console.error('Cannot sign a contract that is not unsigned');
+      return;
     }
+
+    console.log('Redirecting to sign contract:', contract.id);
+    this.router.navigate(['/security'], {
+      queryParams: { unsignedContractId: contract.id }
+    });
+  }
+
+  /**
+   * Export contracts data to CSV
+   */
+  exportToCSV(): void {
+    // Get the contracts based on active tab
+    const contractsToExport = this.activeTab === 'all' ? this.contracts :
+                             this.activeTab === 'signed' ? this.signedContracts :
+                             this.unsignedContracts;
+
+    if (contractsToExport.length === 0) {
+      alert('No contracts to export.');
+      return;
+    }
+
+    // Define CSV headers
+    const headers = ['ID', 'Name', 'Date', 'Status', 'Type', 'Email'];
+
+    // Convert contracts to CSV rows
+    const rows = contractsToExport.map(contract => [
+      contract.id,
+      contract.client || contract.nom_contrat || '',
+      new Date(contract.created_at || contract.startDate).toLocaleDateString(),
+      contract.status || '',
+      contract.type || '',
+      contract.email_signataire || ''
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // Create and download the CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `contracts_${this.activeTab}_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /**
+   * Refresh dashboard data
+   */
+  refreshData(): void {
+    this.loadDashboardData();
   }
 
   /**
@@ -633,43 +882,29 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       return;
     }
 
+    this.isLoading = true;
+
     if (contract.type === 'unsigned') {
       // Delete unsigned contract
-      this.unsignedContractService.deleteUnsignedContract(contract.id).subscribe(
-        (response) => {
-          console.log('Unsigned contract deleted successfully:', response);
-          alert('Contract deleted successfully.');
-          // Reload dashboard data
-          this.loadDashboardData();
-        },
-        (error) => {
-          console.error('Error deleting unsigned contract:', error);
-          alert('Failed to delete contract. Please try again.');
-        }
-      );
+      this.unsignedContractService.deleteUnsignedContract(contract.id)
+        .pipe(
+          takeUntil(this.destroy$),
+          finalize(() => this.isLoading = false)
+        )
+        .subscribe({
+          next: (response) => {
+            console.log('Unsigned contract deleted successfully:', response);
+            alert('Contract deleted successfully.');
+            // Reload dashboard data
+            this.loadDashboardData();
+          },
+          error: (error) => {
+            console.error('Error deleting unsigned contract:', error);
+            alert('Failed to delete contract. Please try again.');
+          }
+        });
     }
   }
 
-  /**
-   * Helper method to download a file
-   */
-  private downloadFile(blob: Blob, fileName: string): void {
-    // Create a URL for the blob
-    const url = window.URL.createObjectURL(blob);
 
-    // Create a link element
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-
-    // Append to the document
-    document.body.appendChild(link);
-
-    // Trigger click
-    link.click();
-
-    // Clean up
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(link);
-  }
 }

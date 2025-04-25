@@ -1,17 +1,28 @@
 <app-navbar></app-navbar>
 
-<div class="dashboard-container">
-  <!-- Dashboard Header -->
-  <div class="dashboard-header">
-    <h1 class="dashboard-title">Dashboard</h1>
-    <div class="dashboard-actions">
-      <div class="filter-controls">
-        <button class="filter-btn" [class.active]="filterPeriod === 'week'" (click)="setFilterPeriod('week')">Week</button>
-        <button class="filter-btn" [class.active]="filterPeriod === 'month'" (click)="setFilterPeriod('month')">Month</button>
-        <button class="filter-btn" [class.active]="filterPeriod === 'quarter'" (click)="setFilterPeriod('quarter')">Quarter</button>
-        <button class="filter-btn" [class.active]="filterPeriod === 'year'" (click)="setFilterPeriod('year')">Year</button>
-      </div>
-    </div>
+<section class="dashboard-section" aria-labelledby="dashboard-heading">
+  <div class="feature-content">
+    <!-- En-tête avec animation -->
+    <header class="section-header">
+      <h2 id="dashboard-heading" class="animate__fadeInDown">
+        <span class="highlight">Control panel
+        </span>
+      </h2>
+      <p class="section-subtitle">Visualisez et gérez vos contrats en un coup d'œil</p>
+    </header>
+
+    <div class="dashboard-container" [class.loading]="isLoading">
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading data...</p>
+  </div>
+
+  <!-- Refresh Button -->
+  <div class="refresh-container">
+    <button class="btn-refresh" (click)="refreshData()" title="Refresh data">
+      <i class="fas fa-sync-alt"></i>
+    </button>
   </div>
 
   <!-- Metrics Row -->
@@ -84,9 +95,10 @@
   <!-- Charts Row -->
   <div class="charts-row">
     <!-- Activity Chart -->
-    <div class="chart-card">
+    <div class="chart-card activity-chart-card">
       <div class="chart-header">
         <h2 class="chart-title">Contract Activity</h2>
+        <div class="chart-subtitle">Tracking signed vs unsigned contracts over time</div>
       </div>
       <div class="chart-canvas-container">
         <canvas #activityChart></canvas>
@@ -114,6 +126,9 @@
             <i class="fas fa-search"></i>
             <input type="text" placeholder="Search contracts..." (input)="searchContracts($event)">
           </div>
+          <button class="btn-export" (click)="exportToCSV()" title="Export to CSV">
+            <i class="fas fa-file-export"></i> Export
+          </button>
           <button class="btn-add" (click)="addNewContract()">
             <i class="fas fa-plus"></i> Add Contract
           </button>
@@ -137,12 +152,42 @@
     <table class="contracts-table">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Date</th>
-          <th *ngIf="activeTab !== 'signed'">Status</th>
+          <th (click)="setSortField('id')" class="sortable-header">
+            ID
+            <i class="fas"
+               [class.fa-sort]="sortField !== 'id'"
+               [class.fa-sort-up]="sortField === 'id' && sortDirection === 'asc'"
+               [class.fa-sort-down]="sortField === 'id' && sortDirection === 'desc'"></i>
+          </th>
+          <th (click)="setSortField('client')" class="sortable-header">
+            Name
+            <i class="fas"
+               [class.fa-sort]="sortField !== 'client'"
+               [class.fa-sort-up]="sortField === 'client' && sortDirection === 'asc'"
+               [class.fa-sort-down]="sortField === 'client' && sortDirection === 'desc'"></i>
+          </th>
+          <th (click)="setSortField('date')" class="sortable-header">
+            Date
+            <i class="fas"
+               [class.fa-sort]="sortField !== 'date'"
+               [class.fa-sort-up]="sortField === 'date' && sortDirection === 'asc'"
+               [class.fa-sort-down]="sortField === 'date' && sortDirection === 'desc'"></i>
+          </th>
+          <th *ngIf="activeTab !== 'signed'" (click)="setSortField('status')" class="sortable-header">
+            Status
+            <i class="fas"
+               [class.fa-sort]="sortField !== 'status'"
+               [class.fa-sort-up]="sortField === 'status' && sortDirection === 'asc'"
+               [class.fa-sort-down]="sortField === 'status' && sortDirection === 'desc'"></i>
+          </th>
           <th *ngIf="activeTab === 'signed' || activeTab === 'all'">Signer Email</th>
-          <th>Type</th>
+          <th (click)="setSortField('type')" class="sortable-header">
+            Type
+            <i class="fas"
+               [class.fa-sort]="sortField !== 'type'"
+               [class.fa-sort-up]="sortField === 'type' && sortDirection === 'asc'"
+               [class.fa-sort-down]="sortField === 'type' && sortDirection === 'desc'"></i>
+          </th>
           <th>Progress</th>
           <th>Actions</th>
         </tr>
@@ -186,11 +231,14 @@
           </td>
           <td>
             <div class="table-actions">
-              <button class="action-btn" title="View details" (click)="viewContract(contract)">
+              <button class="action-btn" title="View details" (click)="viewContractDetails(contract)">
                 <i class="fas fa-eye"></i>
               </button>
               <button class="action-btn" title="Download contract" (click)="downloadContract(contract)">
                 <i class="fas fa-download"></i>
+              </button>
+              <button class="action-btn" *ngIf="contract.type === 'unsigned'" title="Sign contract" (click)="signContract(contract)">
+                <i class="fas fa-signature"></i>
               </button>
               <button class="action-btn" *ngIf="contract.type === 'unsigned'" title="Delete contract" (click)="deleteContract(contract)">
                 <i class="fas fa-trash"></i>
@@ -199,7 +247,7 @@
           </td>
         </tr>
         <tr *ngIf="filteredContracts.length === 0">
-          <td colspan="7" class="no-data">
+          <td colspan="8" class="no-data">
             <div class="empty-state">
               <i class="fas fa-file-contract empty-icon"></i>
               <p>No contracts found</p>
@@ -211,7 +259,173 @@
         </tr>
       </tbody>
     </table>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="filteredContracts.length > 0">
+      <button class="pagination-btn" [disabled]="currentPage === 1" (click)="currentPage = 1">
+        <i class="fas fa-angle-double-left"></i>
+      </button>
+      <button class="pagination-btn" [disabled]="currentPage === 1" (click)="currentPage = currentPage - 1">
+        <i class="fas fa-angle-left"></i>
+      </button>
+      <span class="pagination-info">Page {{ currentPage }} of {{ Math.ceil(totalItems / pageSize) }}</span>
+      <button class="pagination-btn" [disabled]="currentPage >= Math.ceil(totalItems / pageSize)" (click)="currentPage = currentPage + 1">
+        <i class="fas fa-angle-right"></i>
+      </button>
+      <button class="pagination-btn" [disabled]="currentPage >= Math.ceil(totalItems / pageSize)" (click)="currentPage = Math.ceil(totalItems / pageSize)">
+        <i class="fas fa-angle-double-right"></i>
+      </button>
+    </div>
   </div>
-</div>
+
+  <!-- Contract Details Modal -->
+  <div class="modal" *ngIf="selectedContract">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Contract Details</h2>
+        <button class="modal-close" (click)="closeContractDetails()" title="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Basic Information Section -->
+        <div class="detail-group">
+          <div class="modal-section-title">Basic Information</div>
+
+          <div class="detail-row">
+            <div class="detail-label">Contract ID</div>
+            <div class="detail-value">{{ selectedContract.id }}</div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">Contract Name</div>
+            <div class="detail-value">{{ selectedContract.client || selectedContract.nom_contrat || 'Unnamed Contract' }}</div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">Creation Date</div>
+            <div class="detail-value">{{ selectedContract.startDate | date:'MMMM d, y' }}</div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">Last Updated</div>
+            <div class="detail-value">{{ selectedContract.updated_at ? (selectedContract.updated_at | date:'MMMM d, y') : 'Not available' }}</div>
+          </div>
+        </div>
+
+        <!-- Status Information Section -->
+        <div class="detail-group">
+          <div class="modal-section-title">Status Information</div>
+
+          <div class="detail-row">
+            <div class="detail-label">Contract Type</div>
+            <div class="detail-value">
+              <span class="detail-badge"
+                    [ngClass]="{
+                      'type-signed': selectedContract.type === 'signed',
+                      'type-unsigned': selectedContract.type === 'unsigned'
+                    }">
+                <i class="fas" [ngClass]="{
+                  'fa-file-signature': selectedContract.type === 'signed',
+                  'fa-file-alt': selectedContract.type === 'unsigned'
+                }"></i>
+                {{ selectedContract.type | titlecase }}
+              </span>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">Status</div>
+            <div class="detail-value">
+              <span class="detail-badge"
+                    [ngClass]="{
+                      'status-active': selectedContract.status === 'active' || selectedContract.status === 'pending',
+                      'status-signed': selectedContract.status === 'signed',
+                      'status-unsigned': selectedContract.type === 'unsigned' && selectedContract.status !== 'pending'
+                    }">
+                <i class="fas" [ngClass]="{
+                  'fa-hourglass-half': selectedContract.status === 'active' || selectedContract.status === 'pending',
+                  'fa-check-circle': selectedContract.status === 'signed',
+                  'fa-clock': selectedContract.type === 'unsigned' && selectedContract.status !== 'pending'
+                }"></i>
+                {{ selectedContract.status | titlecase }}
+              </span>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">Completion Progress</div>
+            <div class="detail-value">
+              <div class="progress-container">
+                <div class="progress-bar">
+                  <div class="progress-value"
+                      [style.width.%]="selectedContract.progress"
+                      [style.background-color]="
+                        selectedContract.type === 'unsigned' && selectedContract.status === 'pending' ? '#f59e0b' :
+                        selectedContract.type === 'unsigned' ? '#3b82f6' : '#10b981'">
+                  </div>
+                </div>
+                <span class="progress-text">{{ selectedContract.progress }}% Complete</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Information Section -->
+        <div class="detail-group">
+          <div class="modal-section-title">Contact Information</div>
+
+          <div class="detail-row">
+            <div class="detail-label">Signer Email</div>
+            <div class="detail-value" [class.empty]="!selectedContract.email_signataire">
+              {{ selectedContract.email_signataire || 'No email provided' }}
+            </div>
+          </div>
+
+          <div class="detail-row" *ngIf="selectedContract.user_id">
+            <div class="detail-label">Associated User</div>
+            <div class="detail-value">{{ selectedContract.user_id }}</div>
+          </div>
+        </div>
+
+        <!-- File Information Section -->
+        <div class="detail-group">
+          <div class="modal-section-title">File Information</div>
+
+          <div class="detail-row">
+            <div class="detail-label">File Type</div>
+            <div class="detail-value" [class.empty]="!selectedContract.file_type">
+              {{ selectedContract.file_type || 'Unknown' }}
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">File Path</div>
+            <div class="detail-value" [class.empty]="!selectedContract.file_path">
+              {{ selectedContract.file_path || 'Not available' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeContractDetails()">
+          <i class="fas fa-times"></i> Close
+        </button>
+        <button class="btn-primary" (click)="downloadContract(selectedContract)">
+          <i class="fas fa-download"></i> Download Contract
+        </button>
+        <button *ngIf="selectedContract.type === 'unsigned'" class="btn-success" (click)="signContract(selectedContract)">
+          <i class="fas fa-signature"></i> Sign Contract
+        </button>
+        <button *ngIf="selectedContract.type === 'unsigned'" class="btn-danger" (click)="deleteContract(selectedContract)">
+          <i class="fas fa-trash"></i> Delete Contract
+        </button>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+</section>
 
 <app-footer></app-footer>

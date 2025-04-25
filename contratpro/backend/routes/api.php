@@ -15,6 +15,7 @@ Route::post('/upload', [FileUploadController::class, 'upload']);
 Route::get('/files', [FileUploadController::class, 'listFiles']);
 Route::get('/files/download/{filename}', [FileUploadController::class, 'download']);
 Route::delete('/files/deleteAll', [FileUploadController::class, 'deleteAll']);
+Route::delete('/files/delete/{filename}', [FileUploadController::class, 'deleteFile']);
 Route::get('/files/extracted-data/{filename}', [FileUploadController::class, 'getExtractedData']);
 
 // Document generation routes
@@ -40,7 +41,6 @@ Route::prefix('contracts')->middleware('auth:sanctum')->group(function () {
 // Contract signing routes
 Route::post('/contrats/sign', [ContractController::class, 'sign']);
 Route::post('/contrats/sign/word', [ContractController::class, 'signWord']);
-Route::post('/contrats/sign/text', [ContractController::class, 'signText']);
 
 // Signed Contract routes - public access for viewing and downloading
 Route::prefix('signed-contracts')->group(function () {

@@ -247,12 +247,25 @@ class ContractController extends Controller
                 'nom_contrat' => 'required|string',
                 'email_signataire' => 'required|email',
                 'signature_data' => 'required|string',
-                'pdf_file' => 'required|file|max:10240', // Accept any file type, up to 10MB
+                'pdf_file' => 'required|file|max:10240|mimes:pdf,doc,docx', // Only PDF and Word files, up to 10MB
                 'unsigned_contract_id' => 'nullable|exists:unsigned_contracts,id',
             ]);
 
             if ($validator->fails()) {
                 Log::warning('Contract signing validation failed', ['errors' => $validator->errors()]);
+
+                // Check if there's a file type error
+                if ($validator->errors()->has('pdf_file')) {
+                    $fileError = $validator->errors()->get('pdf_file');
+                    if (strpos(implode(' ', $fileError), 'mimes') !== false) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Format de fichier non supporté. Veuillez utiliser PDF ou Word (.pdf, .doc, .docx).',
+                            'errors' => $validator->errors()
+                        ], 422);
+                    }
+                }
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation error',
@@ -308,25 +321,19 @@ class ContractController extends Controller
                     Log::warning('Échec de la signature du document Word, utilisation du fichier original');
                 }
             }
-            else if ($lowerExtension === 'txt' || $fileType === 'text/plain') {
-                Log::info('Traitement d\'un fichier texte');
-                $processedPath = $this->documentSigningService->signTextDocument($filePath, $signerName, $signatureData);
 
-                if ($processedPath) {
-                    $signedFilePath = $processedPath;
-                    Log::info('Document texte signé avec succès', ['path' => $signedFilePath]);
-
-                    // Delete the original uploaded file to avoid duplication
-                    if (Storage::disk('public')->exists($filePath) && $filePath !== $signedFilePath) {
-                        Storage::disk('public')->delete($filePath);
-                        Log::info('Deleted original text document after signing', ['file_path' => $filePath]);
-                    }
-                } else {
-                    Log::warning('Échec de la signature du fichier texte, utilisation du fichier original');
-                }
+            else if ($lowerExtension === 'pdf' ||
+                    $fileType === 'application/pdf') {
+                Log::info('Traitement d\'un document PDF, conservation du fichier original');
+                // For PDF files, we keep the original file
             }
             else {
-                Log::info('Type de fichier non traité spécifiquement, conservation du fichier original');
+                // This should never happen due to validation, but just in case
+                Log::warning('Type de fichier non supporté: ' . $fileType);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Format de fichier non supporté. Veuillez utiliser PDF ou Word (.pdf, .doc, .docx).'
+                ], 400);
             }
 
             // Create a signed contract record
@@ -423,6 +430,19 @@ class ContractController extends Controller
 
             if ($validator->fails()) {
                 Log::warning('Word document signing validation failed', ['errors' => $validator->errors()]);
+
+                // Check if there's a file type error
+                if ($validator->errors()->has('pdf_file')) {
+                    $fileError = $validator->errors()->get('pdf_file');
+                    if (strpos(implode(' ', $fileError), 'mimes') !== false) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Format de fichier non supporté. Veuillez utiliser Word (.doc, .docx).',
+                            'errors' => $validator->errors()
+                        ], 422);
+                    }
+                }
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation error',
@@ -554,156 +574,5 @@ class ContractController extends Controller
         }
     }
 
-    /**
-     * Sign a Text document and return it directly
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\Response
-     */
-    public function signText(Request $request)
-    {
-        try {
-            Log::info('Text document signing process started');
 
-            // Validate request
-            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-                'nom_contrat' => 'required|string',
-                'email_signataire' => 'required|email',
-                'signature_data' => 'required|string',
-                'pdf_file' => 'required|file|max:10240|mimes:txt', // Only accept Text documents
-                'unsigned_contract_id' => 'nullable|exists:unsigned_contracts,id',
-            ]);
-
-            if ($validator->fails()) {
-                Log::warning('Text document signing validation failed', ['errors' => $validator->errors()]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation error',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Get the uploaded file
-            $uploadedFile = $request->file('pdf_file');
-            $originalFileName = $uploadedFile->getClientOriginalName();
-            $fileExtension = $uploadedFile->getClientOriginalExtension();
-            $fileType = $uploadedFile->getMimeType();
-
-            Log::info('Processing Text document for signing', [
-                'fileName' => $originalFileName,
-                'fileType' => $fileType,
-                'fileExtension' => $fileExtension,
-                'fileSize' => $uploadedFile->getSize()
-            ]);
-
-            // Generate a unique filename with timestamp
-            $fileName = time() . '_' . $originalFileName;
-
-            // Store the file in the public storage
-            $filePath = $uploadedFile->storeAs('contracts/signed', $fileName, 'public');
-            Log::info('Text document stored successfully', ['path' => $filePath]);
-
-            // Get the signer name and signature data
-            $signerName = $request->input('nom_contrat');
-            $signatureData = $request->input('signature_data');
-
-            // Process the Text document with the signature
-            $signedFilePath = $this->documentSigningService->signTextDocument($filePath, $signerName, $signatureData);
-
-            if (!$signedFilePath) {
-                Log::error('Failed to sign Text document');
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to sign Text document'
-                ], 500);
-            }
-
-            // Delete the original uploaded file to avoid duplication
-            if (Storage::disk('public')->exists($filePath) && $filePath !== $signedFilePath) {
-                Storage::disk('public')->delete($filePath);
-                Log::info('Deleted original Text document after signing', ['file_path' => $filePath]);
-            }
-
-            Log::info('Text document signed successfully', ['path' => $signedFilePath]);
-
-            // Create a signed contract record
-            $signedContract = new \App\Models\SignedContract();
-            $signedContract->nom_contrat = $signerName;
-            $signedContract->email_signataire = $request->input('email_signataire');
-            $signedContract->file_path = $signedFilePath;
-            $signedContract->signature_data = $signatureData;
-            $signedContract->file_type = $fileType;
-
-            // Associate with user if authenticated
-            if (Auth::check()) {
-                $signedContract->user_id = Auth::id();
-                Log::info('Associated Text document with user', ['user_id' => Auth::id()]);
-            } else {
-                Log::info('No authenticated user for this Text document');
-            }
-
-            // Link to unsigned contract if provided
-            if ($request->has('unsigned_contract_id')) {
-                $unsignedContractId = $request->input('unsigned_contract_id');
-                $signedContract->unsigned_contract_id = $unsignedContractId;
-                Log::info('Linked Text document to unsigned contract', ['unsigned_contract_id' => $unsignedContractId]);
-
-                // Store the unsigned contract ID to delete it after saving the signed contract
-                $unsignedContractToDelete = $unsignedContractId;
-            }
-
-            $signedContract->save();
-            Log::info('Signed Text document record created successfully', ['contract_id' => $signedContract->id]);
-
-            // Now delete the unsigned contract if needed
-            if (isset($unsignedContractToDelete)) {
-                try {
-                    $unsignedContract = \App\Models\UnsignedContract::find($unsignedContractToDelete);
-                    if ($unsignedContract) {
-                        // Store the file path before deleting the record
-                        $unsignedFilePath = $unsignedContract->file_path;
-
-                        // Delete the unsigned contract record
-                        $unsignedContract->delete();
-                        Log::info('Deleted unsigned contract after signing Text document', ['unsigned_contract_id' => $unsignedContractToDelete]);
-
-                        // Delete the unsigned contract file if it exists and is different from the signed file
-                        if ($unsignedFilePath && Storage::disk('public')->exists($unsignedFilePath) && $unsignedFilePath !== $signedFilePath) {
-                            Storage::disk('public')->delete($unsignedFilePath);
-                            Log::info('Deleted unsigned contract file after signing Text document', ['file_path' => $unsignedFilePath]);
-                        }
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Failed to delete unsigned contract after signing Text document', [
-                        'unsigned_contract_id' => $unsignedContractToDelete,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
-
-            // Return the signed document directly as a download
-            $fullPath = Storage::disk('public')->path($signedFilePath);
-            $fileName = basename($signedFilePath);
-            $mimeType = $fileType;
-
-            Log::info('Returning signed Text document', [
-                'path' => $fullPath,
-                'fileName' => $fileName,
-                'mimeType' => $mimeType
-            ]);
-
-            return response()->download($fullPath, $fileName, [
-                'Content-Type' => $mimeType,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Text document signing failed: ' . $e->getMessage(), [
-                'exception' => $e,
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to sign Text document: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 }
