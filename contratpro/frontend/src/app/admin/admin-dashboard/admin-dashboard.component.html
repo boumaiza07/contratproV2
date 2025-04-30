@@ -1,0 +1,182 @@
+<app-navbar></app-navbar>
+
+<section class="admin-dashboard-section">
+  <div class="admin-content">
+    <header class="admin-header">
+      <h1 class="admin-title">Admin Dashboard</h1>
+      <p class="admin-subtitle">Monitor user statistics and manage user accounts</p>
+    </header>
+
+    <div class="admin-dashboard-container" [class.loading]="isLoading">
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" *ngIf="isLoading">
+        <div class="spinner"></div>
+        <p>Loading data...</p>
+      </div>
+
+      <!-- Refresh Button -->
+      <div class="refresh-container">
+        <button class="btn-refresh" (click)="refreshData()" title="Refresh data">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-title">Total Users</h3>
+            <p class="stat-value">{{ stats.total_users || 0 }}</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-user-shield"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-title">Admin Users</h3>
+            <p class="stat-value">{{ stats.admin_users || 0 }}</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-user-check"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-title">Verified Users</h3>
+            <p class="stat-value">{{ stats.verified_users || 0 }}</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-user-clock"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-title">Unverified Users</h3>
+            <p class="stat-value">{{ stats.unverified_users || 0 }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-row">
+        <!-- User Roles Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h2 class="chart-title">User Roles Distribution</h2>
+          </div>
+          <div class="chart-canvas-container">
+            <canvas #usersRoleChart></canvas>
+          </div>
+        </div>
+
+        <!-- User Verification Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h2 class="chart-title">Email Verification Status</h2>
+          </div>
+          <div class="chart-canvas-container">
+            <canvas #usersVerificationChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly User Growth Chart -->
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <h2 class="chart-title">Monthly User Growth</h2>
+        </div>
+        <div class="chart-canvas-container">
+          <canvas #userGrowthChart></canvas>
+        </div>
+      </div>
+
+      <!-- Recent Users Table -->
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <h2 class="chart-title">Recent User Registrations</h2>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Verified</th>
+                <th>Registered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let user of stats.recent_users">
+                <td>{{ user.firstname }} {{ user.lastname }}</td>
+                <td>{{ user.email }}</td>
+                <td>
+                  <span class="badge" [class.badge-admin]="user.is_admin" [class.badge-user]="!user.is_admin">
+                    {{ user.is_admin ? 'Admin' : 'User' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [class.badge-success]="user.email_verified_at" [class.badge-warning]="!user.email_verified_at">
+                    {{ user.email_verified_at ? 'Yes' : 'No' }}
+                  </span>
+                </td>
+                <td>{{ user.created_at | date:'medium' }}</td>
+              </tr>
+              <tr *ngIf="!stats.recent_users || stats.recent_users.length === 0">
+                <td colspan="5" class="no-data">No recent user registrations</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Active Users Table -->
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <h2 class="chart-title">Most Active Users</h2>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Last Activity</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let user of stats.active_users">
+                <td>{{ user.firstname }} {{ user.lastname }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.last_activity | date:'medium' }}</td>
+              </tr>
+              <tr *ngIf="!stats.active_users || stats.active_users.length === 0">
+                <td colspan="3" class="no-data">No active users data available</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Admin Actions -->
+      <div class="admin-actions">
+        <h2 class="section-title">Admin Actions</h2>
+        <div class="action-buttons">
+          <a routerLink="/admin/users" class="action-button">
+            <i class="fas fa-users"></i>
+            <span>Manage Users</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<app-footer></app-footer>
