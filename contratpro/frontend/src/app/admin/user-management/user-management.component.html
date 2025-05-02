@@ -1,0 +1,165 @@
+<app-navbar></app-navbar>
+
+<section class="user-management-section">
+  <div class="user-management-content">
+    <header class="section-header">
+      <h1 class="section-title">User Management</h1>
+      <p class="section-subtitle">Manage user accounts and permissions</p>
+    </header>
+
+    <div class="user-management-container" [class.loading]="isLoading">
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" *ngIf="isLoading">
+        <div class="spinner"></div>
+        <p>Loading users...</p>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="action-bar">
+        <div class="search-container">
+          <input 
+            type="text" 
+            placeholder="Search users..." 
+            [(ngModel)]="searchTerm"
+            (input)="searchUsers()"
+            class="search-input"
+          >
+          <i class="fas fa-search search-icon"></i>
+        </div>
+        
+        <button class="btn-add" (click)="toggleUserForm()" *ngIf="!showUserForm">
+          <i class="fas fa-plus"></i> Add User
+        </button>
+      </div>
+
+      <!-- User Form -->
+      <div class="user-form-container" *ngIf="showUserForm">
+        <div class="form-header">
+          <h2>{{ isEditMode ? 'Edit User' : 'Add New User' }}</h2>
+          <button class="btn-close" (click)="toggleUserForm()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form [formGroup]="userForm" (ngSubmit)="onSubmit()" class="user-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="firstname">First Name</label>
+              <input 
+                type="text" 
+                id="firstname" 
+                formControlName="firstname" 
+                class="form-control"
+                [class.is-invalid]="userForm.get('firstname')?.invalid && userForm.get('firstname')?.touched"
+              >
+              <div class="invalid-feedback" *ngIf="userForm.get('firstname')?.invalid && userForm.get('firstname')?.touched">
+                First name is required
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="lastname">Last Name</label>
+              <input 
+                type="text" 
+                id="lastname" 
+                formControlName="lastname" 
+                class="form-control"
+                [class.is-invalid]="userForm.get('lastname')?.invalid && userForm.get('lastname')?.touched"
+              >
+              <div class="invalid-feedback" *ngIf="userForm.get('lastname')?.invalid && userForm.get('lastname')?.touched">
+                Last name is required
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input 
+              type="email" 
+              id="email" 
+              formControlName="email" 
+              class="form-control"
+              [class.is-invalid]="userForm.get('email')?.invalid && userForm.get('email')?.touched"
+            >
+            <div class="invalid-feedback" *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched">
+              Please enter a valid email address
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="password">{{ isEditMode ? 'Password (leave blank to keep current)' : 'Password' }}</label>
+            <input 
+              type="password" 
+              id="password" 
+              formControlName="password" 
+              class="form-control"
+              [class.is-invalid]="userForm.get('password')?.invalid && userForm.get('password')?.touched"
+            >
+            <div class="invalid-feedback" *ngIf="userForm.get('password')?.invalid && userForm.get('password')?.touched">
+              Password must be at least 8 characters
+            </div>
+          </div>
+          
+          <div class="form-check">
+            <input 
+              type="checkbox" 
+              id="is_admin" 
+              formControlName="is_admin" 
+              class="form-check-input"
+            >
+            <label class="form-check-label" for="is_admin">Admin User</label>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" (click)="toggleUserForm()">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="userForm.invalid">
+              {{ isEditMode ? 'Update User' : 'Create User' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Users Table -->
+      <div class="users-table-container">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of filteredUsers">
+              <td>{{ user.id }}</td>
+              <td>{{ user.firstname }} {{ user.lastname }}</td>
+              <td>{{ user.email }}</td>
+              <td>
+                <span class="badge" [class.badge-admin]="user.is_admin" [class.badge-user]="!user.is_admin">
+                  {{ user.is_admin ? 'Admin' : 'User' }}
+                </span>
+              </td>
+              <td>{{ user.created_at | date:'medium' }}</td>
+              <td class="actions-cell">
+                <button class="btn-edit" (click)="editUser(user)" title="Edit user">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-delete" (click)="deleteUser(user.id)" title="Delete user">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="filteredUsers.length === 0">
+              <td colspan="6" class="no-data">No users found</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<app-footer></app-footer>
