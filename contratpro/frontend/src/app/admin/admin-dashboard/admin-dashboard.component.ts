@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angula
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { HttpClientModule } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
 import { NavbarComponent } from '../../navbar/navbar.component';
 import { FooterComponent } from '../../footer/footer.component';
@@ -10,28 +11,35 @@ import Chart from 'chart.js/auto';
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, HttpClientModule, NavbarComponent, FooterComponent],
+  imports: [CommonModule, RouterModule, HttpClientModule, FormsModule, NavbarComponent, FooterComponent],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.css']
 })
 export class AdminDashboardComponent implements OnInit, AfterViewInit {
   @ViewChild('usersRoleChart') usersRoleChartRef!: ElementRef;
-  @ViewChild('usersVerificationChart') usersVerificationChartRef!: ElementRef;
   @ViewChild('userGrowthChart') userGrowthChartRef!: ElementRef;
+  @ViewChild('contractsTypeChart') contractsTypeChartRef!: ElementRef;
+  @ViewChild('contractsGrowthChart') contractsGrowthChartRef!: ElementRef;
 
   stats: any = {
     total_users: 0,
     admin_users: 0,
     regular_users: 0,
-    verified_users: 0,
-    unverified_users: 0,
-    terms_accepted_users: 0
+    terms_accepted_users: 0,
+    total_contracts: 0,
+    signed_contracts: 0,
+    unsigned_contracts: 0,
+    pending_contracts: 0
   };
+
+  // Filter options
+  dateRange: string = 'last12Months'; // Options: last30Days, last3Months, last6Months, last12Months, allTime
 
   isLoading = true;
   usersRoleChart: any;
-  usersVerificationChart: any;
   userGrowthChart: any;
+  contractsTypeChart: any;
+  contractsGrowthChart: any;
 
   // Chart colors for dark theme
   chartColors = {
@@ -67,8 +75,9 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
         // Initialize charts after data is loaded
         setTimeout(() => {
           this.initUsersRoleChart();
-          this.initUsersVerificationChart();
           this.initUserGrowthChart();
+          this.initContractsTypeChart();
+          this.initContractsGrowthChart();
         }, 100);
       },
       error: (error) => {
@@ -76,6 +85,11 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
         this.isLoading = false;
       }
     });
+  }
+
+  // Filter data based on date range
+  applyDateFilter(): void {
+    this.refreshData();
   }
 
   initUsersRoleChart(): void {
@@ -123,50 +137,7 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
     }
   }
 
-  initUsersVerificationChart(): void {
-    if (this.usersVerificationChartRef && this.usersVerificationChartRef.nativeElement) {
-      const ctx = this.usersVerificationChartRef.nativeElement.getContext('2d');
 
-      this.usersVerificationChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-          labels: ['Verified Users', 'Unverified Users'],
-          datasets: [{
-            data: [
-              this.stats.verified_users || 0,
-              this.stats.unverified_users || 0
-            ],
-            backgroundColor: [this.chartColors.success, this.chartColors.warning],
-            borderWidth: 1,
-            borderColor: this.chartColors.bgDarkLight
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                color: this.chartColors.textWhite,
-                font: {
-                  size: 12
-                }
-              }
-            },
-            title: {
-              display: true,
-              text: 'Email Verification Status',
-              color: this.chartColors.textWhite,
-              font: {
-                size: 16,
-                weight: 'bold'
-              }
-            }
-          }
-        }
-      });
-    }
-  }
 
   initUserGrowthChart(): void {
     if (this.userGrowthChartRef && this.userGrowthChartRef.nativeElement) {
@@ -235,6 +206,152 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
             title: {
               display: true,
               text: 'Monthly User Growth',
+              color: this.chartColors.textWhite,
+              font: {
+                size: 16,
+                weight: 'bold'
+              }
+            }
+          }
+        } as any
+      });
+    }
+  }
+
+  initContractsTypeChart(): void {
+    if (this.contractsTypeChartRef && this.contractsTypeChartRef.nativeElement) {
+      const ctx = this.contractsTypeChartRef.nativeElement.getContext('2d');
+
+      this.contractsTypeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Signed Contracts', 'Pending Contracts', 'Other Unsigned'],
+          datasets: [{
+            data: [
+              this.stats.signed_contracts || 0,
+              this.stats.pending_contracts || 0,
+              (this.stats.unsigned_contracts - this.stats.pending_contracts) || 0
+            ],
+            backgroundColor: [
+              this.chartColors.success,
+              this.chartColors.warning,
+              this.chartColors.primaryLight
+            ],
+            borderWidth: 1,
+            borderColor: this.chartColors.bgDarkLight
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: this.chartColors.textWhite,
+                font: {
+                  size: 12
+                }
+              }
+            },
+            title: {
+              display: true,
+              text: 'Contract Status Distribution',
+              color: this.chartColors.textWhite,
+              font: {
+                size: 16,
+                weight: 'bold'
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  initContractsGrowthChart(): void {
+    if (this.contractsGrowthChartRef && this.contractsGrowthChartRef.nativeElement) {
+      const ctx = this.contractsGrowthChartRef.nativeElement.getContext('2d');
+
+      // Process monthly data
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const signedData = Array(12).fill(0);
+      const unsignedData = Array(12).fill(0);
+
+      if (this.stats.signed_contracts_per_month) {
+        this.stats.signed_contracts_per_month.forEach((item: any) => {
+          signedData[item.month - 1] = item.count;
+        });
+      }
+
+      if (this.stats.unsigned_contracts_per_month) {
+        this.stats.unsigned_contracts_per_month.forEach((item: any) => {
+          unsignedData[item.month - 1] = item.count;
+        });
+      }
+
+      // Define chart data
+      const chartData = {
+        labels: months,
+        datasets: [
+          {
+            label: 'Signed Contracts',
+            data: signedData,
+            backgroundColor: this.chartColors.success,
+            borderColor: this.chartColors.success,
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'Unsigned Contracts',
+            data: unsignedData,
+            backgroundColor: this.chartColors.warning,
+            borderColor: this.chartColors.warning,
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      };
+
+      // Create chart with type assertion to bypass type checking
+      this.contractsGrowthChart = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              stacked: false,
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              },
+              ticks: {
+                color: this.chartColors.textGray
+              }
+            },
+            x: {
+              stacked: false,
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              },
+              ticks: {
+                color: this.chartColors.textGray
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: this.chartColors.textWhite,
+                font: {
+                  size: 12
+                }
+              }
+            },
+            title: {
+              display: true,
+              text: 'Monthly Contract Creation',
               color: this.chartColors.textWhite,
               font: {
                 size: 16,

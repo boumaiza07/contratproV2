@@ -74,10 +74,46 @@
   100% { transform: rotate(360deg); }
 }
 
+.dashboard-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filter-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-container label {
+  color: var(--text-white);
+  font-weight: 500;
+}
+
+.filter-container select {
+  background-color: var(--bg-dark-light);
+  color: var(--text-white);
+  border: 1px solid var(--bg-dark-lighter);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.filter-container select:hover,
+.filter-container select:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
 .refresh-container {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 1rem;
 }
 
 .btn-refresh {
@@ -154,10 +190,41 @@
   transition: all var(--transition-normal);
 }
 
+/* Contract icon styles */
+.contract-icon {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+}
+
+.signed-icon {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+}
+
+.pending-icon {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+}
+
 .stat-card:hover .stat-icon {
   transform: scale(1.1);
   background: var(--primary-gradient);
   color: var(--text-white);
+}
+
+.stat-card:hover .contract-icon {
+  background: linear-gradient(135deg, var(--success), #4ade80);
+}
+
+.stat-card:hover .signed-icon {
+  background: linear-gradient(135deg, var(--success), #4ade80);
+}
+
+.stat-card:hover .pending-icon {
+  background: linear-gradient(135deg, var(--warning), #fbbf24);
 }
 
 .stat-content {
@@ -399,6 +466,11 @@
 .badge-warning {
   background-color: rgba(245, 158, 11, 0.2);
   color: var(--warning);
+}
+
+.badge-pending {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #3b82f6; /* blue-500 */
 }
 
 .no-data {

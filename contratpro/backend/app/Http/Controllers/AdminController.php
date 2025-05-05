@@ -135,15 +135,6 @@ class AdminController extends Controller
             $regularUsers = 0;
         }
 
-        // Get verified vs unverified users
-        try {
-            $verifiedUsers = User::whereNotNull('email_verified_at')->count();
-            $unverifiedUsers = User::whereNull('email_verified_at')->count();
-        } catch (\Exception $e) {
-            $verifiedUsers = 0;
-            $unverifiedUsers = 0;
-        }
-
         // Get users who accepted terms
         try {
             $termsAcceptedUsers = User::where('terms_accepted', true)->count();
@@ -170,7 +161,7 @@ class AdminController extends Controller
         try {
             $recentUsers = User::orderBy('created_at', 'desc')
                 ->take(10)
-                ->get(['id', 'firstname', 'lastname', 'email', 'created_at', 'email_verified_at', 'is_admin']);
+                ->get(['id', 'firstname', 'lastname', 'email', 'created_at', 'is_admin']);
         } catch (\Exception $e) {
             $recentUsers = collect([]);
         }
@@ -190,16 +181,104 @@ class AdminController extends Controller
             $activeUsers = collect([]);
         }
 
+        // Get contract statistics
+        try {
+            // Total contracts
+            $totalSignedContracts = SignedContract::count();
+            $totalUnsignedContracts = UnsignedContract::count();
+            $totalContracts = $totalSignedContracts + $totalUnsignedContracts;
+
+            // Pending contracts
+            $pendingContracts = UnsignedContract::where('status', 'pending')->count();
+
+            // Contracts per month for the last 12 months
+            $contractsPerMonth = collect();
+
+            // Signed contracts per month
+            $signedContractsPerMonth = SignedContract::where('created_at', '>=', $twelveMonthsAgo)
+                ->selectRaw("DATE_FORMAT(created_at, '%m') as month, DATE_FORMAT(created_at, '%Y') as year, count(*) as count")
+                ->groupBy(DB::raw("DATE_FORMAT(created_at, '%Y')"), DB::raw("DATE_FORMAT(created_at, '%m')"))
+                ->orderBy('year')
+                ->orderBy('month')
+                ->get();
+
+            // Unsigned contracts per month
+            $unsignedContractsPerMonth = UnsignedContract::where('created_at', '>=', $twelveMonthsAgo)
+                ->selectRaw("DATE_FORMAT(created_at, '%m') as month, DATE_FORMAT(created_at, '%Y') as year, count(*) as count")
+                ->groupBy(DB::raw("DATE_FORMAT(created_at, '%Y')"), DB::raw("DATE_FORMAT(created_at, '%m')"))
+                ->orderBy('year')
+                ->orderBy('month')
+                ->get();
+
+            // Recent contracts
+            $recentContracts = collect();
+
+            // Recent signed contracts
+            $recentSignedContracts = SignedContract::with('user')
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get()
+                ->map(function($contract) {
+                    return [
+                        'id' => $contract->id,
+                        'name' => $contract->nom_contrat,
+                        'type' => 'signed',
+                        'user' => $contract->user ? $contract->user->firstname . ' ' . $contract->user->lastname : 'Unknown',
+                        'email' => $contract->email_signataire,
+                        'created_at' => $contract->created_at
+                    ];
+                });
+
+            // Recent unsigned contracts
+            $recentUnsignedContracts = UnsignedContract::with('user')
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get()
+                ->map(function($contract) {
+                    return [
+                        'id' => $contract->id,
+                        'name' => $contract->nom_contrat,
+                        'type' => 'unsigned',
+                        'status' => $contract->status,
+                        'user' => $contract->user ? $contract->user->firstname . ' ' . $contract->user->lastname : 'Unknown',
+                        'created_at' => $contract->created_at
+                    ];
+                });
+
+            // Merge and sort recent contracts
+            $recentContracts = $recentSignedContracts->concat($recentUnsignedContracts)
+                ->sortByDesc('created_at')
+                ->take(10)
+                ->values();
+
+        } catch (\Exception $e) {
+            $totalContracts = 0;
+            $totalSignedContracts = 0;
+            $totalUnsignedContracts = 0;
+            $pendingContracts = 0;
+            $signedContractsPerMonth = collect([]);
+            $unsignedContractsPerMonth = collect([]);
+            $recentContracts = collect([]);
+        }
+
         return response()->json([
+            // User statistics
             'total_users' => $totalUsers,
             'admin_users' => $adminUsers,
             'regular_users' => $regularUsers,
-            'verified_users' => $verifiedUsers,
-            'unverified_users' => $unverifiedUsers,
             'terms_accepted_users' => $termsAcceptedUsers,
             'users_per_month' => $usersPerMonth,
             'recent_users' => $recentUsers,
             'active_users' => $activeUsers,
+
+            // Contract statistics
+            'total_contracts' => $totalContracts,
+            'signed_contracts' => $totalSignedContracts,
+            'unsigned_contracts' => $totalUnsignedContracts,
+            'pending_contracts' => $pendingContracts,
+            'signed_contracts_per_month' => $signedContractsPerMonth,
+            'unsigned_contracts_per_month' => $unsignedContractsPerMonth,
+            'recent_contracts' => $recentContracts
         ]);
     }
 

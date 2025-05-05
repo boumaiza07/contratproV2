@@ -4,7 +4,7 @@
   <div class="admin-content">
     <header class="admin-header">
       <h1 class="admin-title">Admin Dashboard</h1>
-      <p class="admin-subtitle">Monitor user statistics and manage user accounts</p>
+      <p class="admin-subtitle">Monitor user statistics and contract data</p>
     </header>
 
     <div class="admin-dashboard-container" [class.loading]="isLoading">
@@ -14,14 +14,28 @@
         <p>Loading data...</p>
       </div>
 
-      <!-- Refresh Button -->
-      <div class="refresh-container">
+      <!-- Dashboard Controls -->
+      <div class="dashboard-controls">
+        <!-- Date Range Filter -->
+        <div class="filter-container">
+          <label for="dateRange">Date Range:</label>
+          <select id="dateRange" [(ngModel)]="dateRange" (change)="applyDateFilter()">
+            <option value="last30Days">Last 30 Days</option>
+            <option value="last3Months">Last 3 Months</option>
+            <option value="last6Months">Last 6 Months</option>
+            <option value="last12Months">Last 12 Months</option>
+            <option value="allTime">All Time</option>
+          </select>
+        </div>
+
+        <!-- Refresh Button -->
         <button class="btn-refresh" (click)="refreshData()" title="Refresh data">
           <i class="fas fa-sync-alt"></i> Refresh
         </button>
       </div>
 
-      <!-- Stats Cards -->
+      <!-- Stats Cards Section -->
+      <h2 class="section-title">User Statistics</h2>
       <div class="stats-cards">
         <div class="stat-card">
           <div class="stat-icon">
@@ -45,26 +59,51 @@
 
         <div class="stat-card">
           <div class="stat-icon">
-            <i class="fas fa-user-check"></i>
+            <i class="fas fa-user"></i>
           </div>
           <div class="stat-content">
-            <h3 class="stat-title">Verified Users</h3>
-            <p class="stat-value">{{ stats.verified_users || 0 }}</p>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-user-clock"></i>
-          </div>
-          <div class="stat-content">
-            <h3 class="stat-title">Unverified Users</h3>
-            <p class="stat-value">{{ stats.unverified_users || 0 }}</p>
+            <h3 class="stat-title">Regular Users</h3>
+            <p class="stat-value">{{ stats.regular_users || 0 }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Charts Row -->
+      <!-- Contract Stats Cards -->
+      <h2 class="section-title">Contract Statistics</h2>
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-icon contract-icon">
+            <i class="fas fa-file-contract"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-title">Total Contracts</h3>
+            <p class="stat-value">{{ stats.total_contracts || 0 }}</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon signed-icon">
+            <i class="fas fa-file-signature"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-title">Signed Contracts</h3>
+            <p class="stat-value">{{ stats.signed_contracts || 0 }}</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon pending-icon">
+            <i class="fas fa-hourglass-half"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-title">Pending Contracts</h3>
+            <p class="stat-value">{{ stats.pending_contracts || 0 }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Charts Row -->
+      <h2 class="section-title">User Analytics</h2>
       <div class="charts-row">
         <!-- User Roles Chart -->
         <div class="chart-card">
@@ -76,24 +115,38 @@
           </div>
         </div>
 
-        <!-- User Verification Chart -->
+        <!-- Monthly User Growth Chart -->
         <div class="chart-card">
           <div class="chart-header">
-            <h2 class="chart-title">Email Verification Status</h2>
+            <h2 class="chart-title">Monthly User Growth</h2>
           </div>
           <div class="chart-canvas-container">
-            <canvas #usersVerificationChart></canvas>
+            <canvas #userGrowthChart></canvas>
           </div>
         </div>
       </div>
 
-      <!-- Monthly User Growth Chart -->
-      <div class="chart-card full-width">
-        <div class="chart-header">
-          <h2 class="chart-title">Monthly User Growth</h2>
+      <!-- Contract Charts Row -->
+      <h2 class="section-title">Contract Analytics</h2>
+      <div class="charts-row">
+        <!-- Contract Types Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h2 class="chart-title">Contract Status Distribution</h2>
+          </div>
+          <div class="chart-canvas-container">
+            <canvas #contractsTypeChart></canvas>
+          </div>
         </div>
-        <div class="chart-canvas-container">
-          <canvas #userGrowthChart></canvas>
+
+        <!-- Monthly Contract Growth Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h2 class="chart-title">Monthly Contract Creation</h2>
+          </div>
+          <div class="chart-canvas-container">
+            <canvas #contractsGrowthChart></canvas>
+          </div>
         </div>
       </div>
 
@@ -109,7 +162,6 @@
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
-                <th>Verified</th>
                 <th>Registered</th>
               </tr>
             </thead>
@@ -122,15 +174,11 @@
                     {{ user.is_admin ? 'Admin' : 'User' }}
                   </span>
                 </td>
-                <td>
-                  <span class="badge" [class.badge-success]="user.email_verified_at" [class.badge-warning]="!user.email_verified_at">
-                    {{ user.email_verified_at ? 'Yes' : 'No' }}
-                  </span>
-                </td>
+
                 <td>{{ user.created_at | date:'medium' }}</td>
               </tr>
               <tr *ngIf="!stats.recent_users || stats.recent_users.length === 0">
-                <td colspan="5" class="no-data">No recent user registrations</td>
+                <td colspan="4" class="no-data">No recent user registrations</td>
               </tr>
             </tbody>
           </table>
@@ -165,6 +213,50 @@
         </div>
       </div>
 
+      <!-- Recent Contracts Table -->
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <h2 class="chart-title">Recent Contracts</h2>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Contract Name</th>
+                <th>User</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let contract of stats.recent_contracts">
+                <td>{{ contract.name }}</td>
+                <td>{{ contract.user }}</td>
+                <td>
+                  <span class="badge" [class.badge-success]="contract.type === 'signed'" [class.badge-warning]="contract.type === 'unsigned'">
+                    {{ contract.type === 'signed' ? 'Signed' : 'Unsigned' }}
+                  </span>
+                </td>
+                <td>
+                  <span *ngIf="contract.type === 'unsigned'" class="badge"
+                        [class.badge-pending]="contract.status === 'pending'"
+                        [class.badge-success]="contract.status === 'completed'"
+                        [class.badge-warning]="contract.status === 'draft'">
+                    {{ contract.status }}
+                  </span>
+                  <span *ngIf="contract.type === 'signed'" class="badge badge-success">Completed</span>
+                </td>
+                <td>{{ contract.created_at | date:'medium' }}</td>
+              </tr>
+              <tr *ngIf="!stats.recent_contracts || stats.recent_contracts.length === 0">
+                <td colspan="5" class="no-data">No recent contracts available</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Admin Actions -->
       <div class="admin-actions">
         <h2 class="section-title">Admin Actions</h2>
@@ -172,6 +264,10 @@
           <a routerLink="/admin/users" class="action-button">
             <i class="fas fa-users"></i>
             <span>Manage Users</span>
+          </a>
+          <a routerLink="/dashboard" class="action-button">
+            <i class="fas fa-file-contract"></i>
+            <span>View Contracts</span>
           </a>
         </div>
       </div>
